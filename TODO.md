@@ -10,3 +10,4 @@
 - nvim系設定たくさんあるので見てみる
 - devcontainer cli見たいな進捗表示
 - autohotkey: 英語の時にcaps lock押すと死ぬ
+- symlink表示. 子なら@^みたいな
