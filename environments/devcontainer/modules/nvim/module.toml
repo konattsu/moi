@@ -61,6 +61,11 @@ dst = "~/.config/nvim/lua/colors/solarized_dark/init.lua"
 mode = "644"
 
 [[files]]
+src = "files/lua/colors/solarized_dark/neo_tree.lua"
+dst = "~/.config/nvim/lua/colors/solarized_dark/neo_tree.lua"
+mode = "644"
+
+[[files]]
 src = "files/lua/colors/solarized_dark/palette.lua"
 dst = "~/.config/nvim/lua/colors/solarized_dark/palette.lua"
 mode = "644"

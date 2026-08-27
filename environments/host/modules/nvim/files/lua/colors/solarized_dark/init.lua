@@ -13,6 +13,7 @@ function M.setup()
   vim.g.colors_name = "solarized-dark"
 
   require("colors.solarized_dark.base").apply()
+  require("colors.solarized_dark.neo_tree").apply()
   require("colors.solarized_dark.rust").apply()
 end
 
