@@ -1,5 +1,5 @@
 name = "nvim"
-depends_on = ["core", "node", "github-cli"]
+depends_on = ["core", "node", "github-cli", "c"]
 
 
 [packages]
@@ -194,6 +194,11 @@ mode = "644"
 [[files]]
 src = "files/lua/plugins/jujutsu.lua.disabled"
 dst = "~/.config/nvim/lua/plugins/jujutsu.lua.disabled"
+mode = "644"
+
+[[files]]
+src = "files/lua/plugins/lang/c.lua"
+dst = "~/.config/nvim/lua/plugins/lang/c.lua"
 mode = "644"
 
 [[files]]

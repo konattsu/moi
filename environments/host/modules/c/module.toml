@@ -1,0 +1,17 @@
+name = "c"
+depends_on = ["core"]
+
+
+[packages]
+apt = [
+    "clang",
+    "cmake",
+    "gdb",
+    "ninja-build",
+]
+pacman = [
+    "clang",
+    "cmake",
+    "gdb",
+    "ninja",
+]

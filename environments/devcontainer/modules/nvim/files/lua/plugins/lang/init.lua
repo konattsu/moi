@@ -2,6 +2,7 @@
 -- https://github.com/neovim/nvim-lspconfig/blob/master/doc/configs.md
 
 return {
+  { import = "plugins.lang.c" },
   { import = "plugins.lang.docker" },
   { import = "plugins.lang.go" },
   { import = "plugins.lang.html-css" },

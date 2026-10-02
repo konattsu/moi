@@ -1,4 +1,6 @@
 local format_on_save_filetypes = {
+  c = true,
+  cpp = true,
   javascript = true,
   javascriptreact = true,
   python = true,
@@ -36,6 +38,8 @@ return {
   cmd = { "ConformInfo" },
   opts = {
     formatters_by_ft = {
+      c = { "clang_format" },
+      cpp = { "clang_format" },
       rust = { "rustfmt" },
       python = { "ruff_format", "black", stop_after_first = true },
       javascript = { "prettierd", "prettier", stop_after_first = true },
