@@ -45,7 +45,7 @@
           "type": "battery",
           "style": "powerline",
           "foreground": "#BBB",
-          "template": "{{ if not .Error }} {{ if le .Percentage 10.0 }}<#E6325F>{{ .Icon }}{{ .Percentage }}%</>{{ else if le .Percentage 20.0 }}<#FFD728>{{ .Icon }}{{ .Percentage }}%</>{{ else }}<d>{{ .Icon }}{{ .Percentage }}%</d>{{ end }}{{ end }}",
+          "template": "{{ if not .Error }} {{ if le .Percentage 10 }}<#E6325F>{{ .Icon }}{{ .Percentage }}%</>{{ else if le .Percentage 20 }}<#FFD728>{{ .Icon }}{{ .Percentage }}%</>{{ else }}<d>{{ .Icon }}{{ .Percentage }}%</d>{{ end }}{{ end }}",
           "options": {
             "discharging_icon": "",
             "charging_icon": "󰂄",
