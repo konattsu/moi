@@ -1,5 +1,5 @@
 name = "nvim"
-depends_on = ["core", "node", "github-cli", "c"]
+depends_on = ["core", "node", "github-cli"]
 
 
 [packages]

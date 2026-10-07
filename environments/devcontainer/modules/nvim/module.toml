@@ -1,5 +1,5 @@
 name = "nvim"
-depends_on = ["core", "c"]
+depends_on = ["core"]
 
 
 [packages]

@@ -84,9 +84,12 @@ Devcontainer 用の Neovim は project の toolchain を優先する。
 - 保存時 format は `conform.nvim` で filetype を限定する
 - Markdown, JSON, YAML などは保存時 format 対象にしない
 
-現在、保存時 format 対象は Rust, Python, JavaScript, TypeScript のみ。
+現在、保存時 format 対象は C, C++, Rust, Python, JavaScript, TypeScript のみ。
+C / C++ は devcontainer の `PATH` にある `clang-format` を使う。
 Python は `.venv/bin` / `venv/bin` の `ruff` と `black`、JavaScript / TypeScript は `node_modules/.bin` の `prettierd` と `prettier` を project root 方向に探索して優先する。
 見つからない場合は devcontainer 内の `PATH` から探し、それでもなければ何もしない。
+
+C / C++ project の devcontainer 構成例は [`docs/c-devcontainer.md`](../../docs/c-devcontainer.md) を参照。
 
 想定する project 側の設定例。
 
