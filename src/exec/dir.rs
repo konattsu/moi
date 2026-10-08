@@ -7,9 +7,10 @@ pub(crate) fn plan(
 
 pub(crate) fn apply(
     dir: &crate::model::Dir,
+    reporter: &mut crate::reporter::Reporter,
 ) -> std::result::Result<(), crate::error::MoiError> {
     let operation = DirOperation::resolve(dir)?;
-    operation.describe();
+    reporter.log(operation.description());
     operation.apply()
 }
 
@@ -31,14 +32,18 @@ impl DirOperation {
     }
 
     fn describe(&self) {
-        crate::output!(
+        crate::output!("    {}", self.description());
+    }
+
+    fn description(&self) -> String {
+        format!(
             "dir{} {}{}",
             self.platform_label,
             self.path.display(),
             self.mode
                 .map(|mode| format!(" mode={mode}"))
                 .unwrap_or_default()
-        );
+        )
     }
 
     fn apply(&self) -> std::result::Result<(), crate::error::MoiError> {

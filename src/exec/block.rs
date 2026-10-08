@@ -9,9 +9,10 @@ pub(crate) fn plan(
 pub(crate) fn apply(
     module: &crate::model::Module,
     block: &crate::model::Block,
+    reporter: &mut crate::reporter::Reporter,
 ) -> std::result::Result<(), crate::error::MoiError> {
     let operation = BlockOperation::resolve(module, block)?;
-    operation.describe();
+    reporter.log(operation.description());
     operation.apply()
 }
 
@@ -45,13 +46,17 @@ impl BlockOperation {
     }
 
     fn describe(&self) {
-        crate::output!(
+        crate::output!("    {}", self.description());
+    }
+
+    fn description(&self) -> String {
+        format!(
             "block{} {} -> {} marker={}",
             self.platform_label,
             self.src.display(),
             self.dst.display(),
             self.marker
-        );
+        )
     }
 
     fn apply(&self) -> std::result::Result<(), crate::error::MoiError> {

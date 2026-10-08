@@ -22,6 +22,15 @@ command 実行が exit code `N` で失敗した場合:
 error: command failed with exit code N
 ```
 
+`plan` と `install-command` は結果を stdout に出す。`apply` の進捗と子processの
+stdout/stderrは stderr に出す。
+
+`apply` は package処理とmodule処理をstageとして `=> [N/M]`、その中のcommandと
+moduleをstepとして `==> [N/M]` で表示する。TTYでは実行中stepの直近6行を灰色で
+表示し、成功時に消去して開始行へ `✓` と所要時間を書き足す。1秒未満の所要時間は
+省略する。失敗時には消去しない。非TTYまたは `-v` 指定時は全行を残し、成功行は
+追加しない。TTYの色は `NO_COLOR` が設定されている場合は無効にする。
+
 ## Entry Points
 
 install:
@@ -60,7 +69,8 @@ moi [--quiet|-v...] upgrade [--force]
 
 `moi` は `plan` / `apply` / `install-command` / `upgrade` のいずれかの subcommand を必須とする。
 `-e` / `--environment`, `--folder-name`, `--source`, `--quiet`, `-v` / `--verbose` は command の前後どちらにも置ける。
-`--quiet` は通常出力を抑制する。`-v` / `--verbose` は診断出力を増やし、複数回指定できる。
+`--quiet` は通常出力と成功した子processの出力を抑制し、失敗時は直近20行を表示する。
+`-v` / `--verbose` は実行ログを残して診断出力を増やし、複数回指定できる。
 
 `install-command` は install script を取得して `plan` または `apply` を実行する shell command を stdout に表示する。
 出力だけを行い、repository clone、module load、config 自動生成は行わない。

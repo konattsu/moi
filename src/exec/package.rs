@@ -4,10 +4,42 @@ pub(crate) fn install(
     repo_root: &std::path::Path,
     env: &crate::exec::environment::ExecutionEnv,
     upgrade: bool,
+    reporter: &mut crate::reporter::Reporter,
 ) -> std::result::Result<(), crate::error::MoiError> {
     if packages.is_empty() {
         return Ok(());
     }
+    let commands = package_commands(packages, platform, upgrade);
+    let total = commands.len();
+    for (index, command) in commands.into_iter().enumerate() {
+        reporter.start_step(index + 1, total, &command.display);
+        if let Err(error) =
+            crate::exec::shell::run_bash(&command.run, repo_root, env, reporter)
+        {
+            reporter.fail_step(&error);
+            return Err(error);
+        }
+        reporter.finish_step();
+    }
+    Ok(())
+}
+
+pub(crate) fn descriptions(
+    packages: &[String],
+    platform: crate::platform::Platform,
+    upgrade: bool,
+) -> Vec<String> {
+    package_commands(packages, platform, upgrade)
+        .into_iter()
+        .map(|command| command.display)
+        .collect()
+}
+
+fn package_commands(
+    packages: &[String],
+    platform: crate::platform::Platform,
+    upgrade: bool,
+) -> Vec<PackageCommand> {
     let quoted = packages
         .iter()
         .map(|package| crate::exec::path::shell_quote(package))
@@ -15,26 +47,20 @@ pub(crate) fn install(
         .join(" ");
     match platform {
         crate::platform::Platform::Debian => {
-            crate::output!("apt update");
-            crate::exec::shell::run_bash("sudo apt update", repo_root, env)?;
+            let mut commands = vec![PackageCommand::new("sudo apt update".to_string())];
             if upgrade {
-                crate::output!("apt upgrade");
-                crate::exec::shell::run_bash("sudo apt upgrade -y", repo_root, env)?;
+                commands.push(PackageCommand::new("sudo apt upgrade -y".to_string()));
             }
-            crate::output!("apt install {quoted}");
-            crate::exec::shell::run_bash(
-                &format!("sudo apt install -y {quoted}"),
-                repo_root,
-                env,
-            )?;
+            commands.push(PackageCommand::with_display(
+                format!("sudo apt install -y {quoted}"),
+                format!("apt install ({} packages)", packages.len()),
+            ));
+            commands
         }
         crate::platform::Platform::Arch => {
-            let command = pacman_install_command(&quoted, upgrade);
-            crate::output!("{}", command.display);
-            crate::exec::shell::run_bash(&command.run, repo_root, env)?;
+            vec![pacman_install_command(&quoted, upgrade)]
         }
     }
-    Ok(())
 }
 
 struct PackageCommand {
@@ -45,6 +71,10 @@ struct PackageCommand {
 impl PackageCommand {
     fn new(run: String) -> Self {
         let display = run.strip_prefix("sudo ").unwrap_or(&run).to_string();
+        Self { run, display }
+    }
+
+    fn with_display(run: String, display: String) -> Self {
         Self { run, display }
     }
 }

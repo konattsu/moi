@@ -10,38 +10,56 @@ pub(crate) fn apply(
     index: usize,
     env: &mut crate::exec::environment::ExecutionEnv,
     ignore_unless: bool,
+    reporter: &mut crate::reporter::Reporter,
 ) -> std::result::Result<(), crate::error::MoiError> {
-    describe_requires(command);
+    log_requires(command, reporter);
     for required in command.requires() {
         ensure_command(required, env)?;
     }
     if let Some(unless) = command.unless().filter(|_| !ignore_unless) {
-        describe_unless(command, index, ignore_unless);
-        if crate::exec::shell::run_bash_status(unless, module.path(), env)?.success() {
-            crate::output!("skip command[{index}]");
+        reporter.log(format!(
+            "unless{} command[{index}]",
+            command.platform().label()
+        ));
+        if crate::exec::shell::run_bash_status(unless, module.path(), env, reporter)?
+            .success()
+        {
+            reporter.log(format!("skip command[{index}]"));
             return Ok(());
         }
     }
-    describe_run(command, index);
-    crate::exec::shell::run_bash(command.run(), module.path(), env)?;
+    reporter.log(format!(
+        "run{} command[{index}]",
+        command.platform().label()
+    ));
+    crate::exec::shell::run_bash(command.run(), module.path(), env, reporter)?;
 
     Ok(())
 }
 
+fn log_requires(
+    command: &crate::model::Command,
+    reporter: &mut crate::reporter::Reporter,
+) {
+    for required in command.requires() {
+        reporter.log(format!("require {required}"));
+    }
+}
+
 fn describe_requires(command: &crate::model::Command) {
     for required in command.requires() {
-        crate::output!("require {required}");
+        crate::output!("    require {required}");
     }
 }
 
 fn describe_unless(command: &crate::model::Command, index: usize, ignore_unless: bool) {
     if command.unless().is_some() && !ignore_unless {
-        crate::output!("unless{} command[{index}]", command.platform().label());
+        crate::output!("    unless{} command[{index}]", command.platform().label());
     }
 }
 
 fn describe_run(command: &crate::model::Command, index: usize) {
-    crate::output!("run{} command[{index}]", command.platform().label());
+    crate::output!("    run{} command[{index}]", command.platform().label());
 }
 
 fn ensure_command(

@@ -11,13 +11,6 @@ impl Platform {
             Platform::Arch => "arch",
         }
     }
-
-    pub(crate) fn package_key(self) -> &'static str {
-        match self {
-            Platform::Debian => "apt",
-            Platform::Arch => "pacman",
-        }
-    }
 }
 
 pub(crate) fn detect() -> std::result::Result<Platform, crate::error::MoiError> {

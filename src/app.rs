@@ -1,7 +1,9 @@
 pub fn run(cli: crate::cli::Cli) -> std::result::Result<(), crate::error::MoiError> {
     match &cli.command {
         crate::cli::Command::Plan(args) => run_plan(&cli.settings, args),
-        crate::cli::Command::Apply(args) => run_apply(&cli.settings, args),
+        crate::cli::Command::Apply(args) => {
+            run_apply(&cli.settings, args, cli.stdout_settings())
+        }
         crate::cli::Command::Install(args) => run_install_command(&cli.settings, args),
         crate::cli::Command::Upgrade(args) => crate::upgrade::run(args),
     }
@@ -19,16 +21,22 @@ fn run_plan(
 fn run_apply(
     settings_args: &crate::cli::SettingsArgs,
     args: &crate::cli::ApplyArgs,
+    output_settings: crate::util::tracing::StdoutSettings,
 ) -> std::result::Result<(), crate::error::MoiError> {
     let context = prepare_run_context(settings_args, &args.run)?;
     let ordered_modules = context.ordered_modules();
+    let mut reporter = crate::reporter::Reporter::new(output_settings);
     apply(
         &ordered_modules,
         context.repo.path(),
         context.platform,
-        context.show_followups,
-        args.ignore_unless,
-        args.upgrade_packages,
+        ApplyOptions {
+            environment: &context.environment,
+            show_followups: context.show_followups,
+            ignore_unless: args.ignore_unless,
+            upgrade_packages: args.upgrade_packages,
+        },
+        &mut reporter,
     )
 }
 
@@ -79,6 +87,7 @@ fn prepare_run_context(
         ordered_modules,
         platform,
         show_followups,
+        environment: settings.environment().to_string(),
     })
 }
 
@@ -141,6 +150,7 @@ struct RunContext {
     ordered_modules: Vec<String>,
     platform: crate::platform::Platform,
     show_followups: bool,
+    environment: String,
 }
 
 struct RepoCheckout {
@@ -239,28 +249,28 @@ fn print_plan(
     show_followups: bool,
 ) -> std::result::Result<(), crate::error::MoiError> {
     let packages = collect_packages(modules, platform);
-    crate::output!("Modules:");
-    for module in modules {
-        crate::output!("  - {}", module.name());
-    }
-    crate::output!();
-    crate::output!("Platform: {}", platform.name());
-    crate::output!();
-    crate::output!("{} packages:", platform.package_key());
-    if packages.is_empty() {
-        crate::output!("  (none)");
-    } else {
-        for package in &packages {
-            crate::output!("  - {package}");
+    let stage_total =
+        usize::from(!packages.is_empty()) + usize::from(!modules.is_empty());
+    let mut stage_index = 0;
+    if !packages.is_empty() {
+        stage_index += 1;
+        let descriptions =
+            crate::exec::package::descriptions(&packages, platform, false);
+        crate::output!("=> [{stage_index}/{stage_total}] Packages");
+        for (index, description) in descriptions.iter().enumerate() {
+            crate::output!("==> [{}/{}] {description}", index + 1, descriptions.len());
         }
+        crate::output!();
     }
-    crate::output!();
-    crate::output!("Operations:");
     let mut env = crate::exec::environment::ExecutionEnv::new();
-    for module in modules {
-        crate::output!("[{}]", module.name());
-        env.apply_module_env(module)?;
-        plan_module_operations(module, platform)?;
+    if !modules.is_empty() {
+        stage_index += 1;
+        crate::output!("=> [{stage_index}/{stage_total}] Modules");
+        for (index, module) in modules.iter().enumerate() {
+            crate::output!("==> [{}/{}] {}", index + 1, modules.len(), module.name());
+            env.apply_module_env(module)?;
+            plan_module_operations(module, platform)?;
+        }
     }
     if show_followups {
         print_followups(modules);
@@ -272,28 +282,61 @@ fn apply(
     modules: &[&crate::model::Module],
     repo_root: &std::path::Path,
     platform: crate::platform::Platform,
-    show_followups: bool,
-    ignore_unless: bool,
-    upgrade_packages: bool,
+    options: ApplyOptions<'_>,
+    reporter: &mut crate::reporter::Reporter,
 ) -> std::result::Result<(), crate::error::MoiError> {
     let mut env = crate::exec::environment::ExecutionEnv::new();
     let packages = collect_packages(modules, platform);
-    crate::exec::package::install(
-        &packages,
-        platform,
-        repo_root,
-        &env,
-        upgrade_packages,
-    )?;
-    for module in modules {
-        crate::output!("==> {}", module.name());
-        env.apply_module_env(module)?;
-        apply_module_operations(module, platform, &mut env, ignore_unless)?;
+    let stage_total =
+        usize::from(!packages.is_empty()) + usize::from(!modules.is_empty());
+    let mut stage_index = 0;
+    if !packages.is_empty() {
+        stage_index += 1;
+        reporter.start_stage(stage_index, stage_total, "Packages");
+        crate::exec::package::install(
+            &packages,
+            platform,
+            repo_root,
+            &env,
+            options.upgrade_packages,
+            reporter,
+        )?;
+        reporter.finish_stage();
     }
-    if show_followups {
+    if !modules.is_empty() {
+        stage_index += 1;
+        reporter.start_stage(stage_index, stage_total, "Modules");
+        for (index, module) in modules.iter().enumerate() {
+            reporter.start_step(index + 1, modules.len(), &module.name().to_string());
+            let result = env.apply_module_env(module).and_then(|()| {
+                apply_module_operations(
+                    module,
+                    platform,
+                    &mut env,
+                    options.ignore_unless,
+                    reporter,
+                )
+            });
+            if let Err(error) = result {
+                reporter.fail_step(&error);
+                return Err(error);
+            }
+            reporter.finish_step();
+        }
+        reporter.finish_stage();
+    }
+    if options.show_followups {
         print_followups(modules);
     }
+    reporter.summary(options.environment, platform.name(), stage_total);
     Ok(())
+}
+
+struct ApplyOptions<'a> {
+    environment: &'a str,
+    show_followups: bool,
+    ignore_unless: bool,
+    upgrade_packages: bool,
 }
 
 fn plan_module_operations(
@@ -328,20 +371,21 @@ fn apply_module_operations(
     platform: crate::platform::Platform,
     env: &mut crate::exec::environment::ExecutionEnv,
     ignore_unless: bool,
+    reporter: &mut crate::reporter::Reporter,
 ) -> std::result::Result<(), crate::error::MoiError> {
     for dir in module.dirs() {
         if dir.platform().matches(platform) {
-            crate::exec::dir::apply(dir)?;
+            crate::exec::dir::apply(dir, reporter)?;
         }
     }
     for file in module.files() {
         if file.platform().matches(platform) {
-            crate::exec::file::apply(module, file)?;
+            crate::exec::file::apply(module, file, reporter)?;
         }
     }
     for block in module.blocks() {
         if block.platform().matches(platform) {
-            crate::exec::block::apply(module, block)?;
+            crate::exec::block::apply(module, block, reporter)?;
         }
     }
     for (index, command) in module.commands().iter().enumerate() {
@@ -352,6 +396,7 @@ fn apply_module_operations(
                 index + 1,
                 env,
                 ignore_unless,
+                reporter,
             )?;
         }
     }

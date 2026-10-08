@@ -9,9 +9,10 @@ pub(crate) fn plan(
 pub(crate) fn apply(
     module: &crate::model::Module,
     file: &crate::model::File,
+    reporter: &mut crate::reporter::Reporter,
 ) -> std::result::Result<(), crate::error::MoiError> {
     let operation = FileOperation::resolve(module, file)?;
-    operation.describe();
+    reporter.log(operation.description());
     operation.apply()
 }
 
@@ -45,7 +46,11 @@ impl FileOperation {
     }
 
     fn describe(&self) {
-        crate::output!(
+        crate::output!("    {}", self.description());
+    }
+
+    fn description(&self) -> String {
+        format!(
             "file{} {} -> {}{}",
             self.platform_label,
             self.src.display(),
@@ -53,7 +58,7 @@ impl FileOperation {
             self.mode
                 .map(|mode| format!(" mode={mode}"))
                 .unwrap_or_default()
-        );
+        )
     }
 
     fn apply(&self) -> std::result::Result<(), crate::error::MoiError> {
