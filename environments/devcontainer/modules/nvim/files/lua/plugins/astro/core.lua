@@ -46,6 +46,7 @@ return {
     },
     mappings = {
       n = {
+        ["<Leader>tt"] = { "<Cmd>ToggleTerm direction=float<CR>", desc = "ToggleTerm float" },
         ["q"] = { "<cmd>quit<cr>", desc = "Quit window" },
         ["<F2>"] = { "q", desc = "Record macro" },
         ["<A-z>"] = {
