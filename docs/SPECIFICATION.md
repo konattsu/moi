@@ -214,8 +214,8 @@ pacman = ["git", "curl"]
 Debian:
 
 ```sh
-sudo apt update
-sudo apt install -y <packages...>
+sudo apt-get update
+sudo apt-get install -y <packages...>
 ```
 
 Arch:
@@ -224,7 +224,7 @@ Arch:
 sudo pacman -S --needed --noconfirm <packages...>
 ```
 
-`apply --upgrade-packages` を指定した場合、Debian では `sudo apt upgrade -y` を実行してから install する。Arch では `pacman -S` の代わりに `pacman -Syu` を使う。
+`apply --upgrade-packages` を指定した場合、Debian では `sudo apt-get upgrade --with-new-pkgs -y` を実行してから install する。`--with-new-pkgs` により更新に必要な新しい依存パッケージの追加を許可するが、既存パッケージは削除しない。Arch では `pacman -S` の代わりに `pacman -Syu` を使う。
 
 `plan` は package 名を表示するだけで package manager command を実行しない。
 

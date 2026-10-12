@@ -47,13 +47,16 @@ fn package_commands(
         .join(" ");
     match platform {
         crate::platform::Platform::Debian => {
-            let mut commands = vec![PackageCommand::new("sudo apt update".to_string())];
+            let mut commands =
+                vec![PackageCommand::new("sudo apt-get update".to_string())];
             if upgrade {
-                commands.push(PackageCommand::new("sudo apt upgrade -y".to_string()));
+                commands.push(PackageCommand::new(
+                    "sudo apt-get upgrade --with-new-pkgs -y".to_string(),
+                ));
             }
             commands.push(PackageCommand::with_display(
-                format!("sudo apt install -y {quoted}"),
-                format!("apt install ({} packages)", packages.len()),
+                format!("sudo apt-get install -y {quoted}"),
+                format!("apt-get install ({} packages)", packages.len()),
             ));
             commands
         }
