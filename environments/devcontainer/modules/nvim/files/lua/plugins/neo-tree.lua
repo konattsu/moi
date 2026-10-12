@@ -4,12 +4,17 @@ local sidebar_winid
 local ok, lines = pcall(vim.fn.readfile, width_file)
 if ok then
   local width = tonumber((lines[1] or ""):match "^width=(%d+)$")
-  if width and width > 0 then sidebar_width = width end
+  -- Discard oversized values already saved by the previous implementation.
+  if width and width > 0 and width < 100 then sidebar_width = width end
 end
 
 local function save_sidebar_width()
   if not sidebar_winid or not vim.api.nvim_win_is_valid(sidebar_winid) then return end
-  sidebar_width = vim.api.nvim_win_get_width(sidebar_winid)
+  local width = vim.api.nvim_win_get_width(sidebar_winid)
+  -- Closing the editor can expand Neo-tree to the full screen before exit.
+  -- Ignore widths >= 100 columns so that expansion does not overwrite the saved width.
+  if width >= 100 then return end
+  sidebar_width = width
   pcall(function()
     vim.fn.mkdir(vim.fn.stdpath "state", "p")
     vim.fn.writefile({ "width=" .. sidebar_width }, width_file)
