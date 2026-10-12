@@ -30,9 +30,21 @@ pub(in crate::exec) fn run_bash_status(
         .stderr(std::process::Stdio::piped());
     env.apply_to(&mut process);
 
+    run_status(&mut process, cwd, reporter)
+}
+
+pub(crate) fn run_status(
+    process: &mut std::process::Command,
+    error_path: &std::path::Path,
+    reporter: &mut crate::reporter::Reporter,
+) -> std::result::Result<std::process::ExitStatus, crate::error::MoiError> {
+    process
+        .stdout(std::process::Stdio::piped())
+        .stderr(std::process::Stdio::piped());
+
     let mut child = process
         .spawn()
-        .map_err(|source| crate::error::MoiError::io(cwd, source))?;
+        .map_err(|source| crate::error::MoiError::io(error_path, source))?;
     let stdout = child.stdout.take().expect("stdout was configured as piped");
     let stderr = child.stderr.take().expect("stderr was configured as piped");
     let (sender, receiver) = std::sync::mpsc::channel();
@@ -47,7 +59,7 @@ pub(in crate::exec) fn run_bash_status(
     let _ = stderr_reader.join();
     let status = child
         .wait()
-        .map_err(|source| crate::error::MoiError::io(cwd, source))?;
+        .map_err(|source| crate::error::MoiError::io(error_path, source))?;
     Ok(status)
 }
 

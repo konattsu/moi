@@ -13,7 +13,7 @@ fn run_plan(
     settings_args: &crate::cli::SettingsArgs,
     args: &crate::cli::RunArgs,
 ) -> std::result::Result<(), crate::error::MoiError> {
-    let context = prepare_run_context(settings_args, args)?;
+    let context = prepare_run_context(settings_args, args, None)?;
     let ordered_modules = context.ordered_modules();
     print_plan(&ordered_modules, context.platform, context.show_followups)
 }
@@ -23,12 +23,13 @@ fn run_apply(
     args: &crate::cli::ApplyArgs,
     output_settings: crate::util::tracing::StdoutSettings,
 ) -> std::result::Result<(), crate::error::MoiError> {
-    let context = prepare_run_context(settings_args, &args.run)?;
-    let ordered_modules = context.ordered_modules();
     let mut reporter = crate::reporter::Reporter::new(output_settings);
+    let context = prepare_run_context(settings_args, &args.run, Some(&mut reporter))?;
+    let ordered_modules = context.ordered_modules();
     apply(
         &ordered_modules,
         context.repo.path(),
+        context.repo.is_temporary(),
         context.platform,
         ApplyOptions {
             environment: &context.environment,
@@ -60,6 +61,7 @@ fn run_install_command(
 fn prepare_run_context(
     settings_args: &crate::cli::SettingsArgs,
     args: &crate::cli::RunArgs,
+    reporter: Option<&mut crate::reporter::Reporter>,
 ) -> std::result::Result<RunContext, crate::error::MoiError> {
     let settings =
         crate::config::Settings::resolve(crate::config::SettingsOverrides {
@@ -68,7 +70,7 @@ fn prepare_run_context(
             source: settings_args.source.as_deref(),
         })?;
     settings.write_if_missing()?;
-    let repo = RepoCheckout::prepare(settings.source())?;
+    let repo = RepoCheckout::prepare(settings.source(), reporter)?;
     let modules_dir = repo
         .path()
         .join(settings.folder_name())
@@ -172,28 +174,64 @@ impl RunContext {
 }
 
 impl RepoCheckout {
-    fn prepare(source: &str) -> std::result::Result<Self, crate::error::MoiError> {
+    fn prepare(
+        source: &str,
+        reporter: Option<&mut crate::reporter::Reporter>,
+    ) -> std::result::Result<Self, crate::error::MoiError> {
         if let Some(path) = source.strip_prefix("file://") {
             return Ok(Self {
                 path: std::path::PathBuf::from(path),
                 _tempdir: None,
             });
         }
+        let mut reporter = reporter;
+        if let Some(reporter) = reporter.as_deref_mut() {
+            reporter.start_stage(1, 3, "Repository");
+            reporter.start_step(1, 1, "Clone moi");
+        }
+        let result = Self::clone_remote(source, reporter.as_deref_mut());
+        match result {
+            Ok(repo) => {
+                if let Some(reporter) = reporter {
+                    reporter.finish_step();
+                    reporter.finish_stage();
+                }
+                Ok(repo)
+            }
+            Err(error) => {
+                if let Some(reporter) = reporter {
+                    reporter.fail_step(&error);
+                }
+                Err(error)
+            }
+        }
+    }
+
+    fn clone_remote(
+        source: &str,
+        reporter: Option<&mut crate::reporter::Reporter>,
+    ) -> std::result::Result<Self, crate::error::MoiError> {
         let tempdir = tempfile::Builder::new()
             .prefix("moi-")
             .tempdir()
             .map_err(|source| crate::error::MoiError::IoMessage(source.to_string()))?;
         let branch = std::env::var("MOI_BRANCH").unwrap_or_else(|_| "main".to_string());
-        let status = std::process::Command::new("git")
+        let mut command = std::process::Command::new("git");
+        command
             .arg("clone")
             .arg("--depth")
             .arg("1")
             .arg("--branch")
             .arg(&branch)
             .arg(source)
-            .arg(tempdir.path())
-            .status()
-            .map_err(|source| crate::error::MoiError::IoMessage(source.to_string()))?;
+            .arg(tempdir.path());
+        let status = if let Some(reporter) = reporter {
+            crate::exec::run_status(&mut command, tempdir.path(), reporter)?
+        } else {
+            command
+                .status()
+                .map_err(|source| crate::error::MoiError::io(tempdir.path(), source))?
+        };
         if !status.success() {
             return Err(crate::error::MoiError::CommandExit(
                 status.code().unwrap_or(1),
@@ -207,6 +245,10 @@ impl RepoCheckout {
 
     fn path(&self) -> &std::path::Path {
         &self.path
+    }
+
+    fn is_temporary(&self) -> bool {
+        self._tempdir.is_some()
     }
 }
 
@@ -281,18 +323,18 @@ fn print_plan(
 fn apply(
     modules: &[&crate::model::Module],
     repo_root: &std::path::Path,
+    repository_cloned: bool,
     platform: crate::platform::Platform,
     options: ApplyOptions<'_>,
     reporter: &mut crate::reporter::Reporter,
 ) -> std::result::Result<(), crate::error::MoiError> {
     let mut env = crate::exec::environment::ExecutionEnv::new();
     let packages = collect_packages(modules, platform);
-    let stage_total =
-        usize::from(!packages.is_empty()) + usize::from(!modules.is_empty());
-    let mut stage_index = 0;
+    let stage_total = 2 + usize::from(repository_cloned);
+    let package_stage = 1 + usize::from(repository_cloned);
+    let module_stage = package_stage + 1;
+    reporter.start_stage(package_stage, stage_total, "Packages");
     if !packages.is_empty() {
-        stage_index += 1;
-        reporter.start_stage(stage_index, stage_total, "Packages");
         crate::exec::package::install(
             &packages,
             platform,
@@ -301,11 +343,10 @@ fn apply(
             options.upgrade_packages,
             reporter,
         )?;
-        reporter.finish_stage();
     }
+    reporter.finish_stage();
+    reporter.start_stage(module_stage, stage_total, "Modules");
     if !modules.is_empty() {
-        stage_index += 1;
-        reporter.start_stage(stage_index, stage_total, "Modules");
         for (index, module) in modules.iter().enumerate() {
             reporter.start_step(index + 1, modules.len(), &module.name().to_string());
             let result = env.apply_module_env(module).and_then(|()| {
@@ -323,8 +364,8 @@ fn apply(
             }
             reporter.finish_step();
         }
-        reporter.finish_stage();
     }
+    reporter.finish_stage();
     if options.show_followups {
         print_followups(modules);
     }

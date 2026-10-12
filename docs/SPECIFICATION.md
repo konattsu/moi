@@ -25,8 +25,10 @@ error: command failed with exit code N
 `plan` と `install-command` は結果を stdout に出す。`apply` の進捗と子processの
 stdout/stderrは stderr に出す。
 
-`apply` は package処理とmodule処理をstageとして `=> [N/M]`、その中のcommandと
-moduleをstepとして `==> [N/M]` で表示する。TTYでは実行中stepの直近6行を灰色で
+`apply` は repository、package、moduleの処理をstageとして `=> [N/M]`、その中の
+clone、command、moduleをstepとして `==> [N/M]` で表示する。HTTPS sourceでは
+3 stage、local sourceではrepository stageを省略して2 stageとする。packageまたは
+moduleが空でもstageは省略しない。TTYでは実行中stepの直近6行を灰色で
 表示し、成功時に消去して開始行へ `✓` と所要時間を書き足す。1秒未満の所要時間は
 省略する。失敗時には消去しない。非TTYまたは `-v` 指定時は全行を残し、成功行は
 追加しない。TTYの色は `NO_COLOR` が設定されている場合は無効にする。
