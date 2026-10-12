@@ -132,6 +132,11 @@ dst = "~/.config/nvim/lua/plugins/astro/ui.lua"
 mode = "644"
 
 [[files]]
+src = "files/lua/plugins/toggleterm.lua"
+dst = "~/.config/nvim/lua/plugins/toggleterm.lua"
+mode = "644"
+
+[[files]]
 src = "files/lua/plugins/autopairs.lua"
 dst = "~/.config/nvim/lua/plugins/autopairs.lua"
 mode = "644"

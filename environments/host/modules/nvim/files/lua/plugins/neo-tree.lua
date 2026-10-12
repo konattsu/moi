@@ -1,3 +1,27 @@
+local width_file = vim.fn.stdpath "state" .. "/sidebar-width.txt"
+local sidebar_width = 40
+local sidebar_winid
+local ok, lines = pcall(vim.fn.readfile, width_file)
+if ok then
+  local width = tonumber((lines[1] or ""):match "^width=(%d+)$")
+  if width and width > 0 then sidebar_width = width end
+end
+
+local function save_sidebar_width()
+  if not sidebar_winid or not vim.api.nvim_win_is_valid(sidebar_winid) then return end
+  sidebar_width = vim.api.nvim_win_get_width(sidebar_winid)
+  pcall(function()
+    vim.fn.mkdir(vim.fn.stdpath "state", "p")
+    vim.fn.writefile({ "width=" .. sidebar_width }, width_file)
+  end)
+end
+
+vim.api.nvim_create_autocmd("VimLeavePre", {
+  group = vim.api.nvim_create_augroup("NeoTreeSidebarWidth", { clear = true }),
+  callback = save_sidebar_width,
+  desc = "Save Neo-tree sidebar width on exit",
+})
+
 local function show_tree(source)
   vim.schedule(function()
     require("neo-tree.command").execute {
@@ -119,8 +143,27 @@ return {
   {
     "nvim-neo-tree/neo-tree.nvim",
     opts = {
+      event_handlers = {
+        {
+          event = "neo_tree_window_after_open",
+          handler = function(args)
+            if args.position ~= "left" then return end
+            sidebar_winid = args.winid
+            vim.api.nvim_win_set_width(sidebar_winid, math.min(sidebar_width, math.max(1, vim.o.columns - 20)))
+          end,
+        },
+        {
+          event = "neo_tree_window_before_close",
+          handler = function(args)
+            if args.position ~= "left" then return end
+            sidebar_winid = args.winid
+            save_sidebar_width()
+            sidebar_winid = nil
+          end,
+        },
+      },
       window = {
-        width = 40,
+        width = sidebar_width,
         mappings = {
           ["<space>"] = "none",
           ["<Tab>"] = "next_source",

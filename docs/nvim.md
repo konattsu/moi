@@ -62,3 +62,20 @@ devcontainer 専用pluginのentryが落ちる可能性がある。
 5. `:checkhealth` と普段使うfiletypeで確認する。
 6. 問題がなければ `~/.config/nvim/lazy-lock.json` を host/devcontainer両方の
    `files/lazy-lock.json` へ反映する。
+
+## サイドバーの幅
+
+Neo-treeの左サイドバーは、閉じる直前とNeovim終了時の実際の幅を保存し、
+次回表示時に復元する。host・devcontainer両方で有効。
+
+状態ファイルは `stdpath("state") .. "/sidebar-width.txt"` に置き、
+`width=36` のような1行を直接上書きする。一時ファイルは使わない。
+保存値がない・不正な場合は40列で開く。全プロジェクトで共通の幅を使い、
+複数のNeovimを起動した場合は最後に保存した値を採用する。
+端末サイズ変更による幅の変化も保存対象になる。
+
+ファイルの場所はNeovimで次のコマンドから確認できる。
+
+```vim
+:echo stdpath('state') .. '/sidebar-width.txt'
+```
