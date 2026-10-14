@@ -1,0 +1,4 @@
+Ubuntuの初期イメージから一時的なビルド用VMを起動し、冪等なセットアップスクリプト（`curl ... | bash`）で共通の開発環境を構築する。構築後はcloud-init state、`machine-id`、SSHホスト鍵などのインスタンス固有情報を初期化し、ディスクを不変の`develop-base.qcow2`として固定する。各開発VMはこのベースをbacking fileとするqcow2 overlayとして作成し、ホスト名、libvirt UUID、MACアドレス、cloud-init `instance-id`、SSH公開鍵などの個体差のみをNoCloud cloud-initで注入する。
+
+大量のAPTパッケージや共通ツールの導入はベースイメージのビルド時にのみ行い、VM作成時には再実行しない。セットアップスクリプトはベースイメージを再生成するための宣言的なビルド手順、`develop-base.qcow2`はその生成物兼キャッシュとして扱い、スクリプト更新時は既存ベースを継ぎ足し更新せず、原則として元のUbuntuイメージから再ビルドする。認証情報はベースへ焼き込まず、VMごとのログイン、SSH agent forwarding、または別の秘密注入機構で扱う。
+
