@@ -6,9 +6,3 @@ depends_on = ["node", "docker"]
 run = "npm install -g @devcontainers/cli"
 unless = "command -v devcontainer"
 requires = ["npm"]
-
-
-[[files]]
-src = "files/exec_devcontainer.sh"
-dst = "~/.local/bin/exec_devcontainer"
-mode = "755"
