@@ -35,6 +35,7 @@ return {
         linebreak = false,
         relativenumber = true,
         number = true,
+        shell = "zsh",
         shiftwidth = 2,
         spell = false,
         softtabstop = 2,
