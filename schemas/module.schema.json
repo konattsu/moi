@@ -1,0 +1,386 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "moi module.toml",
+  "description": "TOMLを解析したオブジェクトに適用する。省略時の扱いは各キーの契約に従う。",
+  "type": "object",
+  "properties": {
+    "name": {
+      "$ref": "#/$defs/name"
+    },
+    "depends_on": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/name"
+      },
+      "uniqueItems": true
+    },
+    "note": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/text"
+      }
+    },
+    "packages": {
+      "$ref": "#/$defs/packages"
+    },
+    "env": {
+      "$ref": "#/$defs/env"
+    },
+    "operations": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/operation"
+      }
+    }
+  },
+  "required": [
+    "name"
+  ],
+  "additionalProperties": false,
+  "$defs": {
+    "text": {
+      "type": "string",
+      "minLength": 1
+    },
+    "name": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "^(?!\\.{1,2}$)[^/\\u0000-\\u0020\\u007f]+$"
+    },
+    "relativePath": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "^(?!/)(?!.*(?:^|/)\\.\\.(?:/|$))[^\\u0000-\\u001f\\u007f$`]+$"
+    },
+    "absolutePath": {
+      "type": "string",
+      "pattern": "^(?!.*(?:^|/)\\.\\.(?:/|$))(?:/[^\\u0000-\\u001f\\u007f$`]*|~(?:/[^\\u0000-\\u001f\\u007f$`]*)?)$"
+    },
+    "mode": {
+      "type": "string",
+      "pattern": "^[0-7]{3,4}$"
+    },
+    "when": {
+      "type": "object",
+      "properties": {
+        "distro": {
+          "type": "array",
+          "items": {
+            "enum": [
+              "debian",
+              "arch"
+            ]
+          },
+          "minItems": 1,
+          "uniqueItems": true
+        },
+        "arch": {
+          "type": "array",
+          "items": {
+            "enum": [
+              "x86_64",
+              "aarch64"
+            ]
+          },
+          "minItems": 1,
+          "uniqueItems": true
+        },
+        "wsl": {
+          "type": "boolean"
+        }
+      },
+      "required": [],
+      "additionalProperties": false
+    },
+    "packages": {
+      "type": "object",
+      "properties": {
+        "apt": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/text"
+          }
+        },
+        "pacman": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/text"
+          }
+        }
+      },
+      "required": [],
+      "additionalProperties": false
+    },
+    "env": {
+      "type": "object",
+      "properties": {
+        "path_prepend": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/absolutePath"
+          }
+        },
+        "path_export": {
+          "$ref": "#/$defs/text"
+        }
+      },
+      "required": [],
+      "additionalProperties": false
+    },
+    "directory": {
+      "type": "object",
+      "properties": {
+        "kind": {
+          "const": "directory"
+        },
+        "when": {
+          "$ref": "#/$defs/when"
+        },
+        "path": {
+          "$ref": "#/$defs/absolutePath"
+        },
+        "mode": {
+          "$ref": "#/$defs/mode"
+        }
+      },
+      "required": [
+        "kind",
+        "path"
+      ],
+      "additionalProperties": false
+    },
+    "file": {
+      "type": "object",
+      "properties": {
+        "kind": {
+          "const": "file"
+        },
+        "when": {
+          "$ref": "#/$defs/when"
+        },
+        "src": {
+          "$ref": "#/$defs/relativePath"
+        },
+        "dst": {
+          "$ref": "#/$defs/absolutePath"
+        },
+        "mode": {
+          "$ref": "#/$defs/mode"
+        }
+      },
+      "required": [
+        "kind",
+        "src",
+        "dst"
+      ],
+      "additionalProperties": false
+    },
+    "symlink": {
+      "type": "object",
+      "properties": {
+        "kind": {
+          "const": "symlink"
+        },
+        "when": {
+          "$ref": "#/$defs/when"
+        },
+        "target": {
+          "$ref": "#/$defs/absolutePath"
+        },
+        "dst": {
+          "$ref": "#/$defs/absolutePath"
+        }
+      },
+      "required": [
+        "kind",
+        "target",
+        "dst"
+      ],
+      "additionalProperties": false
+    },
+    "block": {
+      "type": "object",
+      "properties": {
+        "kind": {
+          "const": "block"
+        },
+        "when": {
+          "$ref": "#/$defs/when"
+        },
+        "src": {
+          "$ref": "#/$defs/relativePath"
+        },
+        "dst": {
+          "$ref": "#/$defs/absolutePath"
+        },
+        "marker": {
+          "type": "string",
+          "minLength": 1,
+          "pattern": "^(?!.*(?:>>>|<<<))[^\\u0000-\\u001f\\u007f]+$"
+        }
+      },
+      "required": [
+        "kind",
+        "src",
+        "dst",
+        "marker"
+      ],
+      "additionalProperties": false
+    },
+    "archive": {
+      "type": "object",
+      "properties": {
+        "kind": {
+          "const": "archive"
+        },
+        "when": {
+          "$ref": "#/$defs/when"
+        },
+        "dst": {
+          "$ref": "#/$defs/absolutePath",
+          "description": "include 省略時は全体を管理する専用ディレクトリ。include 指定時は共有可能な配置先の基点で、列挙したファイルだけを管理する。"
+        },
+        "policy": {
+          "enum": [
+            "pinned",
+            "preserve"
+          ],
+          "description": "両 policy とも version・配布物・include・policy の変更で再導入する。同じ定義の間、pinned は管理範囲の内容、preserve は required_paths の条件を維持する。"
+        },
+        "version": {
+          "type": "string",
+          "minLength": 1,
+          "not": {
+            "const": "latest"
+          },
+          "description": "成果物の版の識別子。管理記録との文字列の一致を比較し、大小比較や実際のアプリへの問い合わせは行わない。"
+        },
+        "url": {
+          "type": "string",
+          "pattern": "^https://[^/\\s?#]+/[^\\s]*$"
+        },
+        "sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-fA-F]{64}$"
+        },
+        "format": {
+          "enum": [
+            "tar.gz",
+            "tar.xz",
+            "zip"
+          ]
+        },
+        "root": {
+          "$ref": "#/$defs/relativePath"
+        },
+        "required_paths": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/relativePath"
+          },
+          "minItems": 1,
+          "uniqueItems": true
+        },
+        "include": {
+          "type": "array",
+          "items": {
+            "allOf": [
+              {
+                "$ref": "#/$defs/relativePath"
+              },
+              {
+                "not": {
+                  "const": "."
+                }
+              }
+            ]
+          },
+          "minItems": 1,
+          "uniqueItems": true,
+          "description": "root 内の通常ファイルを完全一致の相対パスで選択し、dst 配下の同じ相対位置へ直接配置する。省略時は root 全体を専用 dst に配置する。"
+        }
+      },
+      "required": [
+        "kind",
+        "dst",
+        "policy",
+        "version",
+        "url",
+        "sha256",
+        "format",
+        "root"
+      ],
+      "additionalProperties": false,
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "policy": {
+                "const": "preserve"
+              }
+            },
+            "required": [
+              "policy"
+            ]
+          },
+          "then": {
+            "required": [
+              "required_paths"
+            ]
+          },
+          "else": {
+            "not": {
+              "required": [
+                "required_paths"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    "shell": {
+      "type": "object",
+      "properties": {
+        "kind": {
+          "const": "shell"
+        },
+        "when": {
+          "$ref": "#/$defs/when"
+        },
+        "run": {
+          "$ref": "#/$defs/text"
+        },
+        "check": {
+          "$ref": "#/$defs/text"
+        }
+      },
+      "required": [
+        "kind",
+        "run"
+      ],
+      "additionalProperties": false
+    },
+    "operation": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/directory"
+        },
+        {
+          "$ref": "#/$defs/file"
+        },
+        {
+          "$ref": "#/$defs/symlink"
+        },
+        {
+          "$ref": "#/$defs/block"
+        },
+        {
+          "$ref": "#/$defs/archive"
+        },
+        {
+          "$ref": "#/$defs/shell"
+        }
+      ]
+    }
+  }
+}

@@ -1,0 +1,61 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "moi config.toml",
+  "type": "object",
+  "properties": {
+    "default_environment": {
+      "$ref": "#/$defs/name"
+    },
+    "default_folder_name": {
+      "$ref": "#/$defs/relativePath"
+    },
+    "default_source": {
+      "type": "string",
+      "pattern": "^(?:https://[^/\\s?#]+/[^\\s]+|file:///[^\\u0000-\\u001f\\u007f]+)$"
+    },
+    "default_install_source": {
+      "anyOf": [
+        {
+          "allOf": [
+            {
+              "$ref": "#/$defs/relativePath"
+            },
+            {
+              "not": {
+                "pattern": "^[A-Za-z][A-Za-z0-9+.-]*:"
+              }
+            }
+          ]
+        },
+        {
+          "$ref": "#/$defs/absolutePath"
+        },
+        {
+          "type": "string",
+          "pattern": "^(?:https://[^/\\s?#]+(?:/[^\\s]*)?|file:///[^\\u0000-\\u001f\\u007f]+)$"
+        }
+      ]
+    },
+    "default_install_script": {
+      "$ref": "#/$defs/relativePath"
+    }
+  },
+  "required": [],
+  "additionalProperties": false,
+  "$defs": {
+    "name": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "^(?!\\.{1,2}$)[^/\\u0000-\\u0020\\u007f]+$"
+    },
+    "relativePath": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "^(?!/)(?!.*(?:^|/)\\.\\.(?:/|$))[^\\u0000-\\u001f\\u007f$`]+$"
+    },
+    "absolutePath": {
+      "type": "string",
+      "pattern": "^(?!.*(?:^|/)\\.\\.(?:/|$))(?:/[^\\u0000-\\u001f\\u007f$`]*|~(?:/[^\\u0000-\\u001f\\u007f$`]*)?)$"
+    }
+  }
+}
