@@ -1,3 +1,4 @@
+#:schema ../../../../schemas/module.schema.json
 name = "zoxide"
 depends_on = ["zsh"]
 
@@ -7,7 +8,8 @@ apt = ["zoxide"]
 pacman = ["zoxide"]
 
 
-[[blocks]]
+[[operations]]
+kind = "block"
 src = "files/zoxide.zsh"
 dst = "~/.zshrc"
 marker = "moi:zoxide"

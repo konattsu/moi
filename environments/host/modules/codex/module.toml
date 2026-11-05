@@ -1,3 +1,4 @@
+#:schema ../../../../schemas/module.schema.json
 name = "codex"
 depends_on = ["node"]
 
@@ -7,18 +8,18 @@ apt = ["bubblewrap"]
 pacman = ["bubblewrap"]
 
 
-[[dirs]]
+[[operations]]
+kind = "directory"
 path = "~/.codex/rules"
 mode = "700"
 
-
-[[files]]
+[[operations]]
+kind = "file"
 src = "files/rules/moi.rules"
 dst = "~/.codex/rules/moi.rules"
 mode = "600"
 
-
-[[commands]]
+[[operations]]
+kind = "shell"
 run = "npm install -g @openai/codex"
-unless = "command -v codex"
-requires = ["npm"]
+check = "command -v codex"

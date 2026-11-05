@@ -1,27 +1,27 @@
+#:schema ../../../../schemas/module.schema.json
 name = "cargo"
 depends_on = ["zsh", "bash"]
 
 
-[[blocks]]
+[env]
+path_prepend = ["~/.cargo/bin"]
+
+
+[[operations]]
+kind = "block"
 src = "files/cargo.sh"
 dst = "~/.zshrc"
 marker = "moi:cargo"
 
-[[blocks]]
+[[operations]]
+kind = "block"
 src = "files/cargo.sh"
 dst = "~/.bashrc"
 marker = "moi:cargo"
 
-
-[[commands]]
-# ref: https://rust-lang.org/tools/install
-# ref: https://github.com/rust-lang-deprecated/rustup.sh/issues/83
-run = """
+[[operations]]
+kind = "shell"
+run = '''
 curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
-"""
-unless = "command -v cargo"
-requires = ["curl"]
-
-
-[env]
-path_prepend = ["~/.cargo/bin"]
+'''
+check = "test -x \"$HOME/.cargo/bin/cargo\""

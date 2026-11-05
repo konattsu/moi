@@ -1,18 +1,7 @@
+#:schema ../../../../schemas/module.schema.json
 name = "core"
 
 
 [packages]
-apt = [
-    "build-essential",
-    "ca-certificates",
-    "curl",
-    "pkg-config",
-    "unzip",
-]
-pacman = [
-    "base-devel",
-    "ca-certificates",
-    "curl",
-    "pkgconf",
-    "unzip",
-]
+apt = ["build-essential", "ca-certificates", "curl", "pkg-config", "unzip", "git"]
+pacman = ["base-devel", "ca-certificates", "curl", "pkgconf", "unzip", "git"]

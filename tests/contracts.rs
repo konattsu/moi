@@ -549,6 +549,29 @@ fn install_command_quotes_arguments_and_expands_local_home_source() {
 }
 
 #[test]
+fn every_migrated_environment_can_be_planned_without_network_or_target_changes() {
+    let home = tempfile::tempdir().unwrap();
+    let source = url::Url::from_directory_path(env!("CARGO_MANIFEST_DIR")).unwrap();
+    for environment in ["host", "devcontainer", "desktop"] {
+        let output = std::process::Command::new(env!("CARGO_BIN_EXE_moi"))
+            .args(["--source", source.as_str(), "-e", environment, "plan"])
+            .env("HOME", home.path())
+            .env_remove("MOI_SOURCE")
+            .env_remove("MOI_FOLDER_NAME")
+            .env_remove("MOI_ENVIRONMENT")
+            .output()
+            .unwrap();
+        assert!(
+            output.status.success(),
+            "{environment}: {}",
+            String::from_utf8_lossy(&output.stderr)
+        );
+        assert!(!output.stdout.is_empty());
+    }
+    assert_eq!(std::fs::read_dir(home.path()).unwrap().count(), 0);
+}
+
+#[test]
 fn shared_static_inputs_are_allowed_within_the_checkout_and_rejected_outside_it() {
     let f = Fixture::new();
     let shared = f.root.path().join("shared");

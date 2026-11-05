@@ -1,0 +1,29 @@
+#:schema ../../../../schemas/module.schema.json
+name = "udev-gothic"
+
+
+[packages]
+pacman = ["fontconfig"]
+
+
+[[operations]]
+kind = "archive"
+when = { distro = ["arch"] }
+dst = "~/.local/share/fonts/udev-gothic"
+policy = "pinned"
+version = "2.2.0"
+url = "https://github.com/yuru7/udev-gothic/releases/download/v2.2.0/UDEVGothic_NF_v2.2.0.zip"
+sha256 = "45faeef7b5d8bc591bcc5887a2ca0c5fb9028066f18a5a52cd6f10b7d655ba37"
+format = "zip"
+root = "UDEVGothic_NF_v2.2.0"
+include = [
+    "UDEVGothic35NF-Regular.ttf",
+    "UDEVGothic35NF-Bold.ttf",
+    "UDEVGothic35NF-Italic.ttf",
+    "UDEVGothic35NF-BoldItalic.ttf"
+]
+
+[[operations]]
+kind = "shell"
+when = { distro = ["arch"] }
+run = "fc-cache -f \"$HOME/.local/share/fonts/udev-gothic\""

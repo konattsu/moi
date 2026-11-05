@@ -77,6 +77,39 @@ impl Module {
 #[cfg(test)]
 mod tests {
     #[test]
+    fn repository_environments_and_static_inputs_match_the_contract() {
+        let environments =
+            std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("environments");
+        for environment in ["host", "devcontainer", "desktop"] {
+            let modules =
+                super::modules::load(&environments.join(environment).join("modules"))
+                    .unwrap();
+            assert!(!modules.is_empty());
+            for module in modules.values() {
+                for operation in &module.operations {
+                    match operation {
+                        super::Operation::File { src, .. }
+                        | super::Operation::Block { src, .. } => {
+                            let path = module.path.join(src);
+                            assert!(
+                                path.is_file(),
+                                "{}: missing {}",
+                                module.name,
+                                path.display()
+                            );
+                            if matches!(operation, super::Operation::Block { .. }) {
+                                std::fs::read_to_string(path).unwrap();
+                            }
+                        }
+                        super::Operation::Archive(a) => a.validate_selection().unwrap(),
+                        _ => {}
+                    }
+                }
+            }
+        }
+    }
+
+    #[test]
     fn definitions_reject_unknown_keys_and_invalid_fields_at_every_level() {
         let invalid = [
             "name = 'a'\nextra = true",

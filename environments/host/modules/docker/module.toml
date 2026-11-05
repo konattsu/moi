@@ -1,17 +1,17 @@
+#:schema ../../../../schemas/module.schema.json
 name = "docker"
-followups = [
-    "Run `sudo usermod -aG docker $USER` to add your user to the docker group.",
-]
+depends_on = ["core"]
+note = ["Run `sudo usermod -aG docker $USER` to add your user to the docker group."]
 
 
 [packages]
 pacman = ["docker"]
 
 
-[[commands]]
-platform = "debian"
-run = """
-curl -fsSL https://get.docker.com | bash
-"""
-unless = "command -v docker"
-requires = ["bash", "curl"]
+[[operations]]
+kind = "shell"
+when = { distro = ["debian"] }
+run = '''
+curl -fsSL https://get.docker.com | sudo bash
+'''
+check = "command -v docker"

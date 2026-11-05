@@ -1,51 +1,53 @@
+#:schema ../../../../schemas/module.schema.json
 name = "uv"
 depends_on = ["core", "zsh", "bash"]
 
 
-[[dirs]]
+[env]
+path_prepend = ["~/.local/bin"]
+
+
+[[operations]]
+kind = "directory"
 path = "~/.local/share/bash-completion/completions"
 mode = "755"
 
-[[dirs]]
+[[operations]]
+kind = "directory"
 path = "~/.local/share/zsh/site-functions"
 mode = "755"
 
-
-[[commands]]
-run = """
+[[operations]]
+kind = "shell"
+run = '''
 curl -LsSf https://astral.sh/uv/install.sh | env UV_NO_MODIFY_PATH=1 sh
-"""
-unless = "command -v uv"
-requires = ["curl", "sh"]
+'''
+check = "command -v uv"
 
-[[commands]]
-run = """
+[[operations]]
+kind = "shell"
+run = '''
 uv generate-shell-completion bash > "$HOME/.local/share/bash-completion/completions/uv"
-"""
-unless = "test -f ~/.local/share/bash-completion/completions/uv"
-requires = ["uv"]
+'''
+check = "test -f ~/.local/share/bash-completion/completions/uv"
 
-[[commands]]
-run = """
+[[operations]]
+kind = "shell"
+run = '''
 uvx --generate-shell-completion bash > "$HOME/.local/share/bash-completion/completions/uvx"
-"""
-unless = "test -f ~/.local/share/bash-completion/completions/uvx"
-requires = ["uvx"]
+'''
+check = "test -f ~/.local/share/bash-completion/completions/uvx"
 
-[[commands]]
-run = """
+[[operations]]
+kind = "shell"
+run = '''
 uv generate-shell-completion zsh > "$HOME/.local/share/zsh/site-functions/_uv"
-"""
-unless = "test -f ~/.local/share/zsh/site-functions/_uv"
-requires = ["uv"]
+'''
+check = "test -f ~/.local/share/zsh/site-functions/_uv"
 
-[[commands]]
-run = """
+[[operations]]
+kind = "shell"
+run = '''
 uvx --generate-shell-completion zsh > "$HOME/.local/share/zsh/site-functions/_uvx"
-"""
-unless = "test -f ~/.local/share/zsh/site-functions/_uvx"
-requires = ["uvx"]
-
-
-[env]
-path_prepend = ["~/.local/bin"]
+'''
+check = "test -f ~/.local/share/zsh/site-functions/_uvx"

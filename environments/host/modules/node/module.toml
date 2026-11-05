@@ -1,29 +1,56 @@
+#:schema ../../../../schemas/module.schema.json
 name = "node"
 depends_on = ["zsh", "bash"]
 
 
-[[blocks]]
+[env]
+path_export = '''
+{
+  export NVM_DIR="$HOME/.nvm"
+  . "$NVM_DIR/nvm.sh" --no-use
+  nvm use --silent default
+} >&2
+printf '%s\0' "$PATH"
+'''
+
+
+[[operations]]
+kind = "block"
 src = "files/nvm.zsh.sh"
 dst = "~/.zshrc"
 marker = "moi:node:nvm"
 
-
-[[blocks]]
+[[operations]]
+kind = "block"
 src = "files/nvm.bash.sh"
 dst = "~/.bashrc"
 marker = "moi:node:nvm"
 
+[[operations]]
+kind = "shell"
+check = "test -s \"$HOME/.nvm/nvm.sh\""
+run = '''
+curl -fsSL https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.5/install.sh | PROFILE=/dev/null NVM_DIR="$HOME/.nvm" bash
+'''
 
-[[commands]]
-run = """
-curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.5/install.sh | bash
-. "$HOME/.nvm/nvm.sh"
+[[operations]]
+kind = "shell"
+check = '''
+export NVM_DIR="$HOME/.nvm"
+. "$NVM_DIR/nvm.sh" --no-use || exit 2
+if node_path="$(nvm which default)"; then
+  test -x "${node_path%/node}/npm"
+else
+  status=$?
+  case "$status" in
+    3) exit 1 ;;
+    *) exit 2 ;;
+  esac
+fi
+'''
+run = '''
+export NVM_DIR="$HOME/.nvm"
+. "$NVM_DIR/nvm.sh" --no-use
 nvm install stable --latest-npm
 nvm alias default stable
-"""
-unless = """
-test -s "$HOME/.nvm/nvm.sh" &&
-. "$HOME/.nvm/nvm.sh" &&
-command -v npm
-"""
-requires = ["bash", "curl"]
+'''

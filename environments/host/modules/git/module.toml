@@ -1,5 +1,6 @@
+#:schema ../../../../schemas/module.schema.json
 name = "git"
-followups = ["Remember to set the ssh key for signing commits."]
+note = ["Remember to set the ssh key for signing commits."]
 
 
 [packages]
@@ -7,24 +8,35 @@ apt = ["git", "vim"]
 pacman = ["git", "vim"]
 
 
-[[dirs]]
+[[operations]]
+kind = "directory"
 path = "~/.ssh"
 mode = "700"
 
-[[dirs]]
+[[operations]]
+kind = "directory"
 path = "~/.config/moi/git"
 mode = "755"
 
-[[files]]
+[[operations]]
+kind = "file"
 src = "files/config"
 dst = "~/.config/moi/git/config"
 mode = "644"
 
-[[commands]]
-run = """
+[[operations]]
+kind = "shell"
+run = '''
 git config --global --add include.path "$HOME/.config/moi/git/config"
-"""
-unless = """
-git config --global --get-all include.path 2>/dev/null | grep -Fx "$HOME/.config/moi/git/config"
-"""
-requires = ["git", "grep"]
+'''
+check = '''
+if includes="$(git config --global --get-all include.path)"; then
+  printf '%s\n' "$includes" | grep -Fxq "$HOME/.config/moi/git/config"
+else
+  status=$?
+  case "$status" in
+    1) exit 1 ;;
+    *) exit 2 ;;
+  esac
+fi
+'''

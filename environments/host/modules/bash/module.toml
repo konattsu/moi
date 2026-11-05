@@ -1,13 +1,13 @@
+#:schema ../../../../schemas/module.schema.json
 name = "bash"
 depends_on = ["core"]
-
 
 [packages]
 apt = ["bash", "vim"]
 pacman = ["bash", "vim"]
 
-
-[[blocks]]
+[[operations]]
+kind = "block"
 src = "files/editor.sh"
 dst = "~/.bashrc"
 marker = "moi:bash:editor"

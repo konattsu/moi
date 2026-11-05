@@ -1,3 +1,4 @@
+#:schema ../../../../schemas/module.schema.json
 name = "lazygit"
 depends_on = ["core"]
 
@@ -7,31 +8,41 @@ apt = ["git-delta"]
 pacman = ["git-delta"]
 
 
-[[dirs]]
+[env]
+path_prepend = ["~/.local/bin"]
+
+
+[[operations]]
+kind = "archive"
+when = { arch = ["x86_64"] }
+dst = "~/.local/bin"
+policy = "pinned"
+version = "0.66.2"
+url = "https://github.com/jesseduffield/lazygit/releases/download/v0.66.2/lazygit_0.66.2_linux_x86_64.tar.gz"
+sha256 = "158efc9ddfa1241fab5fb3526bb442c8dc6c4b1904d73213b9e4e93e03c52034"
+format = "tar.gz"
+root = "."
+include = ["lazygit"]
+
+[[operations]]
+kind = "archive"
+when = { arch = ["aarch64"] }
+dst = "~/.local/bin"
+policy = "pinned"
+version = "0.66.2"
+url = "https://github.com/jesseduffield/lazygit/releases/download/v0.66.2/lazygit_0.66.2_linux_arm64.tar.gz"
+sha256 = "79a3161eeb642f0473e23db6341f7baabd4a5933e921a9c1167c5d5c765c41a4"
+format = "tar.gz"
+root = "."
+include = ["lazygit"]
+
+[[operations]]
+kind = "directory"
 path = "~/.config/lazygit"
 mode = "755"
 
-
-[[files]]
+[[operations]]
+kind = "file"
 src = "files/config.yml"
 dst = "~/.config/lazygit/config.yml"
 mode = "644"
-
-
-[[commands]]
-# ref: https://github.com/jesseduffield/lazygit#debian-and-ubuntu
-run = """
-LAZYGIT_VERSION=$(curl -fsSL "https://api.github.com/repos/jesseduffield/lazygit/releases/latest" | grep -Po '"tag_name": *"v\\K[^"]*')
-LAZYGIT_ARCH=$(uname -m | sed -e 's/aarch64/arm64/' -e 's/x86_64/x86_64/')
-tmp=$(mktemp -d)
-curl -fsSL -o "$tmp/lazygit.tar.gz" "https://github.com/jesseduffield/lazygit/releases/download/v${LAZYGIT_VERSION}/lazygit_${LAZYGIT_VERSION}_Linux_${LAZYGIT_ARCH}.tar.gz"
-tar -C "$tmp" -xf "$tmp/lazygit.tar.gz" lazygit
-install -D -m 755 "$tmp/lazygit" "$HOME/.local/bin/lazygit"
-rm -rf "$tmp"
-"""
-unless = "test -x \"$HOME/.local/bin/lazygit\""
-requires = ["curl", "grep", "install", "mktemp", "tar", "uname"]
-
-
-[env]
-path_prepend = ["~/.local/bin"]

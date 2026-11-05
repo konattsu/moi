@@ -1,0 +1,29 @@
+#:schema ../../../../schemas/module.schema.json
+name = "win32yank"
+depends_on = ["core"]
+
+
+[env]
+path_prepend = ["~/.local/bin"]
+
+
+[[operations]]
+kind = "shell"
+when = { wsl = true, arch = ["x86_64"] }
+check = '''
+target="$HOME/.local/bin/win32yank.exe"
+if [[ -L "$target" || ( -e "$target" && ! -f "$target" ) ]]; then
+  exit 2
+fi
+[[ -f "$target" ]] || exit 1
+actual="$(sha256sum "$target")" || exit 2
+[[ "${actual%% *}" == "dade5ae8b0bc1c029d18f260e30be1e89a3b9512bcc2904c038be75e80b02ff4" && -x "$target" ]]
+'''
+run = '''
+work_dir="$(mktemp -d)"
+trap 'rm -rf -- "$work_dir"' EXIT
+curl -fLsS https://github.com/equalsraf/win32yank/releases/download/v0.1.1/win32yank-x64.zip -o "$work_dir/win32yank.zip"
+printf '%s  %s\n' '247c9a05b94387a884b49d3db13f806b1677dfc38020f955f719be6902260cd6' "$work_dir/win32yank.zip" | sha256sum --check --status
+unzip -q "$work_dir/win32yank.zip" -d "$work_dir/extracted"
+install -D -m 755 "$work_dir/extracted/win32yank.exe" "$HOME/.local/bin/win32yank.exe"
+'''

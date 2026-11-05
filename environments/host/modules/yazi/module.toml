@@ -1,110 +1,90 @@
+#:schema ../../../../schemas/module.schema.json
 name = "yazi"
-depends_on = ["core", "lazygit"]
+depends_on = ["core", "fd", "lazygit"]
 
 
 [packages]
-apt = [
-    "fd-find",
-    "fzf",
-    "hexyl",
-    "imagemagick",
-    "jq",
-    "p7zip-full",
-    "poppler-utils",
-    "ripgrep",
-    "wl-clipboard",
-    "xclip",
-    "zoxide",
-]
-pacman = [
-    "fd",
-    "fzf",
-    "hexyl",
-    "imagemagick",
-    "jq",
-    "p7zip",
-    "poppler",
-    "ripgrep",
-    "wl-clipboard",
-    "xclip",
-    "zoxide",
-]
-
-
-[[dirs]]
-path = "~/.config/yazi"
-mode = "755"
-
-
-[[files]]
-src = "files/init.lua"
-dst = "~/.config/yazi/init.lua"
-mode = "644"
-
-[[files]]
-src = "files/keymap.toml"
-dst = "~/.config/yazi/keymap.toml"
-mode = "644"
-
-[[files]]
-src = "files/package.toml"
-dst = "~/.config/yazi/package.toml"
-mode = "644"
-
-[[files]]
-src = "files/theme.toml"
-dst = "~/.config/yazi/theme.toml"
-mode = "644"
-
-[[files]]
-src = "files/yazi.toml"
-dst = "~/.config/yazi/yazi.toml"
-mode = "644"
-
-[[files]]
-src = "files/plugins/folder-rules.yazi/main.lua"
-dst = "~/.config/yazi/plugins/folder-rules.yazi/main.lua"
-mode = "644"
-
-[[files]]
-src = "files/plugins/hexyl.yazi/main.lua"
-dst = "~/.config/yazi/plugins/hexyl.yazi/main.lua"
-mode = "644"
-
-[[files]]
-src = "files/plugins/lazygit.yazi/main.lua"
-dst = "~/.config/yazi/plugins/lazygit.yazi/main.lua"
-mode = "644"
-
-
-[[commands]]
-platform = "debian"
-run = """
-mkdir -p "$HOME/.local/bin"
-ln -sf "$(command -v fdfind)" "$HOME/.local/bin/fd"
-"""
-unless = "test -L \"$HOME/.local/bin/fd\""
-requires = ["fdfind", "ln", "mkdir"]
-
-[[commands]]
-# ref: https://yazi-rs.github.io/docs/installation/#official-binaries
-run = """
-YAZI_VERSION=$(curl -fsSL "https://api.github.com/repos/sxyazi/yazi/releases/latest" | grep -Po '"tag_name": *"v\\K[^"]*')
-case "$(uname -m)" in
-  x86_64) YAZI_TARGET="x86_64-unknown-linux-gnu" ;;
-  aarch64|arm64) YAZI_TARGET="aarch64-unknown-linux-gnu" ;;
-  *) echo "unsupported architecture: $(uname -m)" >&2; exit 1 ;;
-esac
-tmp=$(mktemp -d)
-curl -fsSL -o "$tmp/yazi.zip" "https://github.com/sxyazi/yazi/releases/download/v${YAZI_VERSION}/yazi-${YAZI_TARGET}.zip"
-unzip -j "$tmp/yazi.zip" "*/yazi" "*/ya" -d "$tmp/bin"
-install -D -m 755 "$tmp/bin/yazi" "$HOME/.local/bin/yazi"
-install -D -m 755 "$tmp/bin/ya" "$HOME/.local/bin/ya"
-rm -rf "$tmp"
-"""
-unless = "test -x \"$HOME/.local/bin/yazi\" && test -x \"$HOME/.local/bin/ya\""
-requires = ["curl", "grep", "install", "mktemp", "uname", "unzip"]
+apt = ["fzf", "hexyl", "imagemagick", "jq", "p7zip-full", "poppler-utils", "ripgrep", "wl-clipboard", "xclip", "zoxide"]
+pacman = ["fzf", "hexyl", "imagemagick", "jq", "p7zip", "poppler", "ripgrep", "wl-clipboard", "xclip", "zoxide"]
 
 
 [env]
 path_prepend = ["~/.local/bin"]
+
+
+[[operations]]
+kind = "archive"
+when = { arch = ["x86_64"] }
+dst = "~/.local/bin"
+policy = "pinned"
+version = "26.9.1"
+url = "https://github.com/sxyazi/yazi/releases/download/v26.9.1/yazi-x86_64-unknown-linux-gnu.zip"
+sha256 = "a02fe91d3304294048c681f010f1100856872a4e98ecf6927328e888d40a6ad2"
+format = "zip"
+root = "yazi-x86_64-unknown-linux-gnu"
+include = ["yazi", "ya"]
+
+[[operations]]
+kind = "archive"
+when = { arch = ["aarch64"] }
+dst = "~/.local/bin"
+policy = "pinned"
+version = "26.9.1"
+url = "https://github.com/sxyazi/yazi/releases/download/v26.9.1/yazi-aarch64-unknown-linux-gnu.zip"
+sha256 = "02807f08d6b589b65b7516a4e259d83f5995d7a23bb12b3a155141385b370b3a"
+format = "zip"
+root = "yazi-aarch64-unknown-linux-gnu"
+include = ["yazi", "ya"]
+
+[[operations]]
+kind = "directory"
+path = "~/.config/yazi"
+mode = "755"
+
+[[operations]]
+kind = "file"
+src = "files/init.lua"
+dst = "~/.config/yazi/init.lua"
+mode = "644"
+
+[[operations]]
+kind = "file"
+src = "files/keymap.toml"
+dst = "~/.config/yazi/keymap.toml"
+mode = "644"
+
+[[operations]]
+kind = "file"
+src = "files/package.toml"
+dst = "~/.config/yazi/package.toml"
+mode = "644"
+
+[[operations]]
+kind = "file"
+src = "files/theme.toml"
+dst = "~/.config/yazi/theme.toml"
+mode = "644"
+
+[[operations]]
+kind = "file"
+src = "files/yazi.toml"
+dst = "~/.config/yazi/yazi.toml"
+mode = "644"
+
+[[operations]]
+kind = "file"
+src = "files/plugins/folder-rules.yazi/main.lua"
+dst = "~/.config/yazi/plugins/folder-rules.yazi/main.lua"
+mode = "644"
+
+[[operations]]
+kind = "file"
+src = "files/plugins/hexyl.yazi/main.lua"
+dst = "~/.config/yazi/plugins/hexyl.yazi/main.lua"
+mode = "644"
+
+[[operations]]
+kind = "file"
+src = "files/plugins/lazygit.yazi/main.lua"
+dst = "~/.config/yazi/plugins/lazygit.yazi/main.lua"
+mode = "644"

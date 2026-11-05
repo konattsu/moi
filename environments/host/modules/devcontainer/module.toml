@@ -1,8 +1,9 @@
+#:schema ../../../../schemas/module.schema.json
 name = "devcontainer"
 depends_on = ["node", "docker"]
 
 
-[[commands]]
+[[operations]]
+kind = "shell"
 run = "npm install -g @devcontainers/cli"
-unless = "command -v devcontainer"
-requires = ["npm"]
+check = "command -v devcontainer"

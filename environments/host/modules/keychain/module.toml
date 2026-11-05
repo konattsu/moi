@@ -1,6 +1,7 @@
+#:schema ../../../../schemas/module.schema.json
 name = "keychain"
 depends_on = ["zsh", "bash"]
-followups = ["Add SSH keys to keychain manually as needed."]
+note = ["Add SSH keys to keychain manually as needed."]
 
 
 [packages]
@@ -8,18 +9,19 @@ apt = ["keychain"]
 pacman = ["keychain"]
 
 
-[[dirs]]
+[[operations]]
+kind = "directory"
 path = "~/.config/moi"
 mode = "755"
 
-
-[[blocks]]
+[[operations]]
+kind = "block"
 src = "files/keychain.sh"
 dst = "~/.zshrc"
 marker = "moi:keychain"
 
-
-[[blocks]]
+[[operations]]
+kind = "block"
 src = "files/keychain.sh"
 dst = "~/.bashrc"
 marker = "moi:keychain"

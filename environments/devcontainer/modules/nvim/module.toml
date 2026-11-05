@@ -1,418 +1,432 @@
+#:schema ../../../../schemas/module.schema.json
 name = "nvim"
-depends_on = ["core"]
+depends_on = ["core", "node", "fd", "win32yank"]
 
 
 [packages]
-apt = [
-    "fd-find",
-    "lua5.1",
-    "luarocks",
-    "ripgrep",
-    "unzip",
-    "wl-clipboard",
-    "xclip",
-]
-pacman = [
-    "fd",
-    "lua51",
-    "luarocks",
-    "ripgrep",
-    "unzip",
-    "wl-clipboard",
-    "xclip",
-]
-
-
-[[dirs]]
-path = "~/.config/nvim"
-mode = "755"
-
-[[dirs]]
-path = "~/.config/nvim/colors"
-mode = "755"
-
-[[dirs]]
-path = "~/.config/nvim/after/queries/rust"
-mode = "755"
-
-[[dirs]]
-path = "~/.config/nvim/lua/colors/solarized_dark"
-mode = "755"
-
-
-[[files]]
-src = "files/after/queries/rust/highlights.scm"
-dst = "~/.config/nvim/after/queries/rust/highlights.scm"
-mode = "644"
-
-[[files]]
-src = "files/colors/solarized-dark.lua"
-dst = "~/.config/nvim/colors/solarized-dark.lua"
-mode = "644"
-
-[[files]]
-src = "files/lua/colors/solarized_dark/base.lua"
-dst = "~/.config/nvim/lua/colors/solarized_dark/base.lua"
-mode = "644"
-
-[[files]]
-src = "files/lua/colors/solarized_dark/init.lua"
-dst = "~/.config/nvim/lua/colors/solarized_dark/init.lua"
-mode = "644"
-
-[[files]]
-src = "files/lua/colors/solarized_dark/neo_tree.lua"
-dst = "~/.config/nvim/lua/colors/solarized_dark/neo_tree.lua"
-mode = "644"
-
-[[files]]
-src = "files/lua/colors/solarized_dark/palette.lua"
-dst = "~/.config/nvim/lua/colors/solarized_dark/palette.lua"
-mode = "644"
-
-[[files]]
-src = "files/lua/colors/solarized_dark/rust.lua"
-dst = "~/.config/nvim/lua/colors/solarized_dark/rust.lua"
-mode = "644"
-
-[[files]]
-src = "files/colors/tokyo-dark.lua"
-dst = "~/.config/nvim/colors/tokyo-dark.lua"
-mode = "644"
-
-
-[[files]]
-src = "files/dot_luarc.json"
-dst = "~/.config/nvim/.luarc.json"
-mode = "644"
-
-[[files]]
-src = "files/dot_neoconf.json"
-dst = "~/.config/nvim/.neoconf.json"
-mode = "644"
-
-[[files]]
-src = "files/init.lua"
-dst = "~/.config/nvim/init.lua"
-mode = "644"
-
-[[files]]
-src = "files/lua/community.lua"
-dst = "~/.config/nvim/lua/community.lua"
-mode = "644"
-
-[[files]]
-src = "files/lua/lazy_setup.lua"
-dst = "~/.config/nvim/lua/lazy_setup.lua"
-mode = "644"
-
-[[files]]
-src = "files/lazy-lock.json"
-dst = "~/.config/nvim/lazy-lock.json"
-mode = "644"
-
-[[files]]
-src = "files/lua/plugins/astro/core.lua"
-dst = "~/.config/nvim/lua/plugins/astro/core.lua"
-mode = "644"
-
-[[files]]
-src = "files/lua/plugins/astro/init.lua"
-dst = "~/.config/nvim/lua/plugins/astro/init.lua"
-mode = "644"
-
-[[files]]
-src = "files/lua/plugins/astro/lsp.lua"
-dst = "~/.config/nvim/lua/plugins/astro/lsp.lua"
-mode = "644"
-
-[[files]]
-src = "files/lua/plugins/astro/ui.lua"
-dst = "~/.config/nvim/lua/plugins/astro/ui.lua"
-mode = "644"
-
-[[files]]
-src = "files/lua/plugins/toggleterm.lua"
-dst = "~/.config/nvim/lua/plugins/toggleterm.lua"
-mode = "644"
-
-[[files]]
-src = "files/lua/plugins/autopairs.lua"
-dst = "~/.config/nvim/lua/plugins/autopairs.lua"
-mode = "644"
-
-[[files]]
-src = "files/lua/plugins/chezmoi.lua"
-dst = "~/.config/nvim/lua/plugins/chezmoi.lua"
-mode = "644"
-
-[[files]]
-src = "files/lua/plugins/codediff.lua"
-dst = "~/.config/nvim/lua/plugins/codediff.lua"
-mode = "644"
-
-[[files]]
-src = "files/lua/plugins/context.lua"
-dst = "~/.config/nvim/lua/plugins/context.lua"
-mode = "644"
-
-[[files]]
-src = "files/lua/plugins/conform.lua"
-dst = "~/.config/nvim/lua/plugins/conform.lua"
-mode = "644"
-
-[[files]]
-src = "files/lua/plugins/dashboard.lua"
-dst = "~/.config/nvim/lua/plugins/dashboard.lua"
-mode = "644"
-
-[[files]]
-src = "files/lua/plugins/diagnostics.lua"
-dst = "~/.config/nvim/lua/plugins/diagnostics.lua"
-mode = "644"
-
-[[files]]
-src = "files/lua/plugins/dial.lua"
-dst = "~/.config/nvim/lua/plugins/dial.lua"
-mode = "644"
-
-[[files]]
-src = "files/lua/plugins/disable_images.lua"
-dst = "~/.config/nvim/lua/plugins/disable_images.lua"
-mode = "644"
-
-[[files]]
-src = "files/lua/plugins/disabled.lua"
-dst = "~/.config/nvim/lua/plugins/disabled.lua"
-mode = "644"
-
-[[files]]
-src = "files/lua/plugins/flash.lua"
-dst = "~/.config/nvim/lua/plugins/flash.lua"
-mode = "644"
-
-[[files]]
-src = "files/lua/plugins/gitsigns.lua"
-dst = "~/.config/nvim/lua/plugins/gitsigns.lua"
-mode = "644"
-
-[[files]]
-src = "files/lua/plugins/heirline.lua"
-dst = "~/.config/nvim/lua/plugins/heirline.lua"
-mode = "644"
-
-[[files]]
-src = "files/lua/plugins/hlchunk.lua"
-dst = "~/.config/nvim/lua/plugins/hlchunk.lua"
-mode = "644"
-
-[[files]]
-src = "files/lua/plugins/jujutsu.lua.disabled"
-dst = "~/.config/nvim/lua/plugins/jujutsu.lua.disabled"
-mode = "644"
-
-[[files]]
-src = "files/lua/plugins/lang/c.lua"
-dst = "~/.config/nvim/lua/plugins/lang/c.lua"
-mode = "644"
-
-[[files]]
-src = "files/lua/plugins/lang/docker.lua"
-dst = "~/.config/nvim/lua/plugins/lang/docker.lua"
-mode = "644"
-
-[[files]]
-src = "files/lua/plugins/lang/go.lua"
-dst = "~/.config/nvim/lua/plugins/lang/go.lua"
-mode = "644"
-
-[[files]]
-src = "files/lua/plugins/lang/html-css.lua"
-dst = "~/.config/nvim/lua/plugins/lang/html-css.lua"
-mode = "644"
-
-[[files]]
-src = "files/lua/plugins/lang/init.lua"
-dst = "~/.config/nvim/lua/plugins/lang/init.lua"
-mode = "644"
-
-[[files]]
-src = "files/lua/plugins/lang/json.lua"
-dst = "~/.config/nvim/lua/plugins/lang/json.lua"
-mode = "644"
-
-[[files]]
-src = "files/lua/plugins/lang/lua.lua"
-dst = "~/.config/nvim/lua/plugins/lang/lua.lua"
-mode = "644"
-
-[[files]]
-src = "files/lua/plugins/lang/markdown.lua"
-dst = "~/.config/nvim/lua/plugins/lang/markdown.lua"
-mode = "644"
-
-[[files]]
-src = "files/lua/plugins/lang/python.lua"
-dst = "~/.config/nvim/lua/plugins/lang/python.lua"
-mode = "644"
-
-[[files]]
-src = "files/lua/plugins/lang/rust.lua"
-dst = "~/.config/nvim/lua/plugins/lang/rust.lua"
-mode = "644"
-
-[[files]]
-src = "files/lua/plugins/lang/shell.lua"
-dst = "~/.config/nvim/lua/plugins/lang/shell.lua"
-mode = "644"
-
-[[files]]
-src = "files/lua/plugins/lang/toml.lua"
-dst = "~/.config/nvim/lua/plugins/lang/toml.lua"
-mode = "644"
-
-[[files]]
-src = "files/lua/plugins/lang/typescript.lua"
-dst = "~/.config/nvim/lua/plugins/lang/typescript.lua"
-mode = "644"
-
-[[files]]
-src = "files/lua/plugins/lang/yaml.lua"
-dst = "~/.config/nvim/lua/plugins/lang/yaml.lua"
-mode = "644"
-
-[[files]]
-src = "files/lua/plugins/markdown_preview.lua"
-dst = "~/.config/nvim/lua/plugins/markdown_preview.lua"
-mode = "644"
-
-[[files]]
-src = "files/lua/plugins/mason.lua"
-dst = "~/.config/nvim/lua/plugins/mason.lua"
-mode = "644"
-
-[[files]]
-src = "files/lua/plugins/neo-tree.lua"
-dst = "~/.config/nvim/lua/plugins/neo-tree.lua"
-mode = "644"
-
-[[files]]
-src = "files/lua/plugins/neoscroll.lua"
-dst = "~/.config/nvim/lua/plugins/neoscroll.lua"
-mode = "644"
-
-[[files]]
-src = "files/lua/plugins/noice.lua"
-dst = "~/.config/nvim/lua/plugins/noice.lua"
-mode = "644"
-
-[[files]]
-src = "files/lua/plugins/picker.lua"
-dst = "~/.config/nvim/lua/plugins/picker.lua"
-mode = "644"
-
-[[files]]
-src = "files/lua/plugins/rainbow-delimiters.lua"
-dst = "~/.config/nvim/lua/plugins/rainbow-delimiters.lua"
-mode = "644"
-
-[[files]]
-src = "files/lua/plugins/surround.lua"
-dst = "~/.config/nvim/lua/plugins/surround.lua"
-mode = "644"
-
-[[files]]
-src = "files/lua/plugins/treesitter.lua"
-dst = "~/.config/nvim/lua/plugins/treesitter.lua"
-mode = "644"
-
-[[files]]
-src = "files/lua/plugins/typst_preview.lua"
-dst = "~/.config/nvim/lua/plugins/typst_preview.lua"
-mode = "644"
-
-[[files]]
-src = "files/lua/plugins/vscode_icons.lua"
-dst = "~/.config/nvim/lua/plugins/vscode_icons.lua"
-mode = "644"
-
-[[files]]
-src = "files/lua/plugins/which-key.lua"
-dst = "~/.config/nvim/lua/plugins/which-key.lua"
-mode = "644"
-
-[[files]]
-src = "files/lua/plugins/wildfire.lua"
-dst = "~/.config/nvim/lua/plugins/wildfire.lua"
-mode = "644"
-
-[[files]]
-src = "files/lua/polish.lua"
-dst = "~/.config/nvim/lua/polish.lua"
-mode = "644"
-
-[[commands]]
-run = """
-mkdir -p "$HOME/.local/bin" "$HOME/.local/share"
-NVIM_VERSION=0.12.4
-tmpdir="$(mktemp -d)"
-trap 'rm -rf "$tmpdir"' EXIT
-archive="$tmpdir/nvim-linux-x86_64.tar.gz"
-extract_dir="$tmpdir/extract"
-curl -fL "https://github.com/neovim/neovim/releases/download/v${NVIM_VERSION}/nvim-linux-x86_64.tar.gz" -o "$archive"
-mkdir -p "$extract_dir"
-tar -xzf "$archive" -C "$extract_dir"
-nvim_bin=""
-for candidate in "$extract_dir"/*/bin/nvim; do
-  if [ -x "$candidate" ]; then
-    nvim_bin="$candidate"
-    break
-  fi
-done
-if [ -z "$nvim_bin" ]; then
-  echo "nvim binary not found in archive" >&2
-  exit 1
-fi
-nvim_root="$(dirname "$(dirname "$nvim_bin")")"
-rm -rf "$HOME/.local/share/nvim-linux-x86_64"
-mv "$nvim_root" "$HOME/.local/share/nvim-linux-x86_64"
-ln -sf "$HOME/.local/share/nvim-linux-x86_64/bin/nvim" "$HOME/.local/bin/nvim"
-"""
-unless = """
-test -x "$HOME/.local/bin/nvim" &&
-"$HOME/.local/bin/nvim" --version >/dev/null 2>&1 &&
-"$HOME/.local/bin/nvim" --version | grep -Eq '^NVIM v0\\.12\\.4($|[^0-9])'
-"""
-requires = ["curl", "dirname", "grep", "ln", "mkdir", "mktemp", "mv", "rm", "tar"]
-
-[[commands]]
-platform = "debian"
-run = """
-mkdir -p "$HOME/.local/bin"
-ln -sf "$(command -v fdfind)" "$HOME/.local/bin/fd"
-"""
-unless = "command -v fd"
-requires = ["fdfind"]
-
-[[commands]]
-run = """
-mkdir -p "$HOME/.local/bin"
-tmpdir="$(mktemp -d)"
-trap 'rm -rf "$tmpdir"' EXIT
-archive="$tmpdir/win32yank.zip"
-curl -fL https://github.com/equalsraf/win32yank/releases/latest/download/win32yank-x64.zip -o "$archive"
-unzip -q "$archive" -d "$tmpdir/win32yank"
-install -m 755 "$tmpdir/win32yank/win32yank.exe" "$HOME/.local/bin/win32yank.exe"
-"""
-unless = """
-if grep -qi microsoft /proc/version 2>/dev/null; then
-  command -v win32yank.exe
-else
-  exit 0
-fi
-"""
-requires = ["curl", "grep", "install", "mkdir", "mktemp", "unzip"]
+apt = ["lua5.1", "luarocks", "ripgrep", "unzip", "wl-clipboard", "xclip"]
+pacman = ["lua51", "luarocks", "ripgrep", "unzip", "wl-clipboard", "xclip"]
 
 
 [env]
 path_prepend = ["~/.local/bin"]
+
+
+[[operations]]
+kind = "archive"
+when = { arch = ["x86_64"] }
+dst = "~/.local/share/moi/apps/nvim"
+policy = "pinned"
+version = "0.12.4"
+url = "https://github.com/neovim/neovim/releases/download/v0.12.4/nvim-linux-x86_64.tar.gz"
+sha256 = "012bf3fcac5ade43914df3f174668bf64d05e049a4f032a388c027b1ebd78628"
+format = "tar.gz"
+root = "nvim-linux-x86_64"
+
+[[operations]]
+kind = "archive"
+when = { arch = ["aarch64"] }
+dst = "~/.local/share/moi/apps/nvim"
+policy = "pinned"
+version = "0.12.4"
+url = "https://github.com/neovim/neovim/releases/download/v0.12.4/nvim-linux-arm64.tar.gz"
+sha256 = "ceb7e88c6b681f0515d135dcdfad54f5eb4373b25ce6172197cd9a69c758063f"
+format = "tar.gz"
+root = "nvim-linux-arm64"
+
+[[operations]]
+kind = "symlink"
+target = "~/.local/share/moi/apps/nvim/bin/nvim"
+dst = "~/.local/bin/nvim"
+
+[[operations]]
+kind = "directory"
+path = "~/.config/nvim"
+mode = "755"
+
+[[operations]]
+kind = "directory"
+path = "~/.config/nvim/colors"
+mode = "755"
+
+[[operations]]
+kind = "directory"
+path = "~/.config/nvim/after/queries/rust"
+mode = "755"
+
+[[operations]]
+kind = "directory"
+path = "~/.config/nvim/lua/colors/solarized_dark"
+mode = "755"
+
+[[operations]]
+kind = "file"
+src = "files/after/queries/rust/highlights.scm"
+dst = "~/.config/nvim/after/queries/rust/highlights.scm"
+mode = "644"
+
+[[operations]]
+kind = "file"
+src = "files/colors/solarized-dark.lua"
+dst = "~/.config/nvim/colors/solarized-dark.lua"
+mode = "644"
+
+[[operations]]
+kind = "file"
+src = "files/lua/colors/solarized_dark/base.lua"
+dst = "~/.config/nvim/lua/colors/solarized_dark/base.lua"
+mode = "644"
+
+[[operations]]
+kind = "file"
+src = "files/lua/colors/solarized_dark/init.lua"
+dst = "~/.config/nvim/lua/colors/solarized_dark/init.lua"
+mode = "644"
+
+[[operations]]
+kind = "file"
+src = "files/lua/colors/solarized_dark/neo_tree.lua"
+dst = "~/.config/nvim/lua/colors/solarized_dark/neo_tree.lua"
+mode = "644"
+
+[[operations]]
+kind = "file"
+src = "files/lua/colors/solarized_dark/palette.lua"
+dst = "~/.config/nvim/lua/colors/solarized_dark/palette.lua"
+mode = "644"
+
+[[operations]]
+kind = "file"
+src = "files/lua/colors/solarized_dark/rust.lua"
+dst = "~/.config/nvim/lua/colors/solarized_dark/rust.lua"
+mode = "644"
+
+[[operations]]
+kind = "file"
+src = "files/colors/tokyo-dark.lua"
+dst = "~/.config/nvim/colors/tokyo-dark.lua"
+mode = "644"
+
+[[operations]]
+kind = "file"
+src = "files/dot_luarc.json"
+dst = "~/.config/nvim/.luarc.json"
+mode = "644"
+
+[[operations]]
+kind = "file"
+src = "files/dot_neoconf.json"
+dst = "~/.config/nvim/.neoconf.json"
+mode = "644"
+
+[[operations]]
+kind = "file"
+src = "files/init.lua"
+dst = "~/.config/nvim/init.lua"
+mode = "644"
+
+[[operations]]
+kind = "file"
+src = "files/lua/community.lua"
+dst = "~/.config/nvim/lua/community.lua"
+mode = "644"
+
+[[operations]]
+kind = "file"
+src = "files/lua/lazy_setup.lua"
+dst = "~/.config/nvim/lua/lazy_setup.lua"
+mode = "644"
+
+[[operations]]
+kind = "file"
+src = "files/lazy-lock.json"
+dst = "~/.config/nvim/lazy-lock.json"
+mode = "644"
+
+[[operations]]
+kind = "file"
+src = "files/lua/plugins/astro/core.lua"
+dst = "~/.config/nvim/lua/plugins/astro/core.lua"
+mode = "644"
+
+[[operations]]
+kind = "file"
+src = "files/lua/plugins/astro/init.lua"
+dst = "~/.config/nvim/lua/plugins/astro/init.lua"
+mode = "644"
+
+[[operations]]
+kind = "file"
+src = "files/lua/plugins/astro/lsp.lua"
+dst = "~/.config/nvim/lua/plugins/astro/lsp.lua"
+mode = "644"
+
+[[operations]]
+kind = "file"
+src = "files/lua/plugins/astro/ui.lua"
+dst = "~/.config/nvim/lua/plugins/astro/ui.lua"
+mode = "644"
+
+[[operations]]
+kind = "file"
+src = "files/lua/plugins/toggleterm.lua"
+dst = "~/.config/nvim/lua/plugins/toggleterm.lua"
+mode = "644"
+
+[[operations]]
+kind = "file"
+src = "files/lua/plugins/autopairs.lua"
+dst = "~/.config/nvim/lua/plugins/autopairs.lua"
+mode = "644"
+
+[[operations]]
+kind = "file"
+src = "files/lua/plugins/chezmoi.lua"
+dst = "~/.config/nvim/lua/plugins/chezmoi.lua"
+mode = "644"
+
+[[operations]]
+kind = "file"
+src = "files/lua/plugins/codediff.lua"
+dst = "~/.config/nvim/lua/plugins/codediff.lua"
+mode = "644"
+
+[[operations]]
+kind = "file"
+src = "files/lua/plugins/context.lua"
+dst = "~/.config/nvim/lua/plugins/context.lua"
+mode = "644"
+
+[[operations]]
+kind = "file"
+src = "files/lua/plugins/conform.lua"
+dst = "~/.config/nvim/lua/plugins/conform.lua"
+mode = "644"
+
+[[operations]]
+kind = "file"
+src = "files/lua/plugins/dashboard.lua"
+dst = "~/.config/nvim/lua/plugins/dashboard.lua"
+mode = "644"
+
+[[operations]]
+kind = "file"
+src = "files/lua/plugins/diagnostics.lua"
+dst = "~/.config/nvim/lua/plugins/diagnostics.lua"
+mode = "644"
+
+[[operations]]
+kind = "file"
+src = "files/lua/plugins/dial.lua"
+dst = "~/.config/nvim/lua/plugins/dial.lua"
+mode = "644"
+
+[[operations]]
+kind = "file"
+src = "files/lua/plugins/disable_images.lua"
+dst = "~/.config/nvim/lua/plugins/disable_images.lua"
+mode = "644"
+
+[[operations]]
+kind = "file"
+src = "files/lua/plugins/disabled.lua"
+dst = "~/.config/nvim/lua/plugins/disabled.lua"
+mode = "644"
+
+[[operations]]
+kind = "file"
+src = "files/lua/plugins/flash.lua"
+dst = "~/.config/nvim/lua/plugins/flash.lua"
+mode = "644"
+
+[[operations]]
+kind = "file"
+src = "files/lua/plugins/gitsigns.lua"
+dst = "~/.config/nvim/lua/plugins/gitsigns.lua"
+mode = "644"
+
+[[operations]]
+kind = "file"
+src = "files/lua/plugins/heirline.lua"
+dst = "~/.config/nvim/lua/plugins/heirline.lua"
+mode = "644"
+
+[[operations]]
+kind = "file"
+src = "files/lua/plugins/hlchunk.lua"
+dst = "~/.config/nvim/lua/plugins/hlchunk.lua"
+mode = "644"
+
+[[operations]]
+kind = "file"
+src = "files/lua/plugins/jujutsu.lua.disabled"
+dst = "~/.config/nvim/lua/plugins/jujutsu.lua.disabled"
+mode = "644"
+
+[[operations]]
+kind = "file"
+src = "files/lua/plugins/lang/c.lua"
+dst = "~/.config/nvim/lua/plugins/lang/c.lua"
+mode = "644"
+
+[[operations]]
+kind = "file"
+src = "files/lua/plugins/lang/docker.lua"
+dst = "~/.config/nvim/lua/plugins/lang/docker.lua"
+mode = "644"
+
+[[operations]]
+kind = "file"
+src = "files/lua/plugins/lang/go.lua"
+dst = "~/.config/nvim/lua/plugins/lang/go.lua"
+mode = "644"
+
+[[operations]]
+kind = "file"
+src = "files/lua/plugins/lang/html-css.lua"
+dst = "~/.config/nvim/lua/plugins/lang/html-css.lua"
+mode = "644"
+
+[[operations]]
+kind = "file"
+src = "files/lua/plugins/lang/init.lua"
+dst = "~/.config/nvim/lua/plugins/lang/init.lua"
+mode = "644"
+
+[[operations]]
+kind = "file"
+src = "files/lua/plugins/lang/json.lua"
+dst = "~/.config/nvim/lua/plugins/lang/json.lua"
+mode = "644"
+
+[[operations]]
+kind = "file"
+src = "files/lua/plugins/lang/lua.lua"
+dst = "~/.config/nvim/lua/plugins/lang/lua.lua"
+mode = "644"
+
+[[operations]]
+kind = "file"
+src = "files/lua/plugins/lang/markdown.lua"
+dst = "~/.config/nvim/lua/plugins/lang/markdown.lua"
+mode = "644"
+
+[[operations]]
+kind = "file"
+src = "files/lua/plugins/lang/python.lua"
+dst = "~/.config/nvim/lua/plugins/lang/python.lua"
+mode = "644"
+
+[[operations]]
+kind = "file"
+src = "files/lua/plugins/lang/rust.lua"
+dst = "~/.config/nvim/lua/plugins/lang/rust.lua"
+mode = "644"
+
+[[operations]]
+kind = "file"
+src = "files/lua/plugins/lang/shell.lua"
+dst = "~/.config/nvim/lua/plugins/lang/shell.lua"
+mode = "644"
+
+[[operations]]
+kind = "file"
+src = "files/lua/plugins/lang/toml.lua"
+dst = "~/.config/nvim/lua/plugins/lang/toml.lua"
+mode = "644"
+
+[[operations]]
+kind = "file"
+src = "files/lua/plugins/lang/typescript.lua"
+dst = "~/.config/nvim/lua/plugins/lang/typescript.lua"
+mode = "644"
+
+[[operations]]
+kind = "file"
+src = "files/lua/plugins/lang/yaml.lua"
+dst = "~/.config/nvim/lua/plugins/lang/yaml.lua"
+mode = "644"
+
+[[operations]]
+kind = "file"
+src = "files/lua/plugins/markdown_preview.lua"
+dst = "~/.config/nvim/lua/plugins/markdown_preview.lua"
+mode = "644"
+
+[[operations]]
+kind = "file"
+src = "files/lua/plugins/mason.lua"
+dst = "~/.config/nvim/lua/plugins/mason.lua"
+mode = "644"
+
+[[operations]]
+kind = "file"
+src = "files/lua/plugins/neo-tree.lua"
+dst = "~/.config/nvim/lua/plugins/neo-tree.lua"
+mode = "644"
+
+[[operations]]
+kind = "file"
+src = "files/lua/plugins/neoscroll.lua"
+dst = "~/.config/nvim/lua/plugins/neoscroll.lua"
+mode = "644"
+
+[[operations]]
+kind = "file"
+src = "files/lua/plugins/noice.lua"
+dst = "~/.config/nvim/lua/plugins/noice.lua"
+mode = "644"
+
+[[operations]]
+kind = "file"
+src = "files/lua/plugins/picker.lua"
+dst = "~/.config/nvim/lua/plugins/picker.lua"
+mode = "644"
+
+[[operations]]
+kind = "file"
+src = "files/lua/plugins/rainbow-delimiters.lua"
+dst = "~/.config/nvim/lua/plugins/rainbow-delimiters.lua"
+mode = "644"
+
+[[operations]]
+kind = "file"
+src = "files/lua/plugins/surround.lua"
+dst = "~/.config/nvim/lua/plugins/surround.lua"
+mode = "644"
+
+[[operations]]
+kind = "file"
+src = "files/lua/plugins/treesitter.lua"
+dst = "~/.config/nvim/lua/plugins/treesitter.lua"
+mode = "644"
+
+[[operations]]
+kind = "file"
+src = "files/lua/plugins/typst_preview.lua"
+dst = "~/.config/nvim/lua/plugins/typst_preview.lua"
+mode = "644"
+
+[[operations]]
+kind = "file"
+src = "files/lua/plugins/vscode_icons.lua"
+dst = "~/.config/nvim/lua/plugins/vscode_icons.lua"
+mode = "644"
+
+[[operations]]
+kind = "file"
+src = "files/lua/plugins/which-key.lua"
+dst = "~/.config/nvim/lua/plugins/which-key.lua"
+mode = "644"
+
+[[operations]]
+kind = "file"
+src = "files/lua/plugins/wildfire.lua"
+dst = "~/.config/nvim/lua/plugins/wildfire.lua"
+mode = "644"
+
+[[operations]]
+kind = "file"
+src = "files/lua/polish.lua"
+dst = "~/.config/nvim/lua/polish.lua"
+mode = "644"

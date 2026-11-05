@@ -1,34 +1,9 @@
+#:schema ../../../../schemas/module.schema.json
 name = "core"
 
 
 [packages]
 apt = [
     "btop",
-    "build-essential",
-    "ca-certificates",
-    "curl",
-    "ffmpeg",
-    "git",
-    "gnupg",
-    "iproute2",
-    "libssl-dev",
-    "lsb-release",
-    "pkg-config",
-    "unzip",
-    "wget",
-]
-pacman = [
-    "base-devel",
-    "btop",
-    "ca-certificates",
-    "curl",
-    "ffmpeg",
-    "git",
-    "gnupg",
-    "iproute2",
-    "lsb-release",
-    "openssl",
-    "pkgconf",
-    "unzip",
-    "wget",
-]
+    "build-essential", "ca-certificates", "curl", "ffmpeg", "git", "gnupg", "iproute2", "libssl-dev", "lsb-release", "pkg-config", "unzip", "wget"]
+pacman = ["base-devel", "btop", "ca-certificates", "curl", "ffmpeg", "git", "gnupg", "iproute2", "lsb-release", "openssl", "pkgconf", "unzip", "wget"]

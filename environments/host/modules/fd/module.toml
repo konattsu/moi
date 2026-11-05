@@ -1,0 +1,18 @@
+#:schema ../../../../schemas/module.schema.json
+name = "fd"
+
+
+[packages]
+apt = ["fd-find"]
+pacman = ["fd"]
+
+
+[env]
+path_prepend = ["~/.local/bin"]
+
+
+[[operations]]
+kind = "symlink"
+when = { distro = ["debian"] }
+target = "/usr/bin/fdfind"
+dst = "~/.local/bin/fd"
