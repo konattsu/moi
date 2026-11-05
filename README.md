@@ -8,9 +8,9 @@ Linux(Debian/Arch) 用の環境をセットアップする repo
 
 - 管理対象をモジュール単位で分割できる(例: [modules](environments/host/modules))
 - パッケージ, ファイル, marker block, バイナリ, 任意コマンドをまとめて適用できる
-- 特殊なインストール手順も `module.toml` に寄せられる
-  - 例: debian 環境の github-cli のように, 事前にパッケージマネージャーの更新が必要なもの
-  - `install-gh.sh` のような個別スクリプトと, その呼び出し順序を管理する必要がない
+- 特殊なインストール手順は module の shell 操作に記述する
+  - 追加リポジトリが必要なものは, 登録からパッケージ導入まで shell で行う
+  - 標準の `packages` は全 module 操作より先に一括導入する
 
 ## Install
 
@@ -66,7 +66,7 @@ default_source = "https://github.com/konattsu/moi.git"
 | source | `--source` | `MOI_SOURCE` |
 
 `install-command` だけが使う install script の場所は, 必要なら手で設定ファイルに追加する.
-この値は config 自動生成時には書かれない.
+設定ファイルの読み込みだけでは, ファイルの生成・更新は行わない.
 
 ```toml
 default_install_source = "file:///home/....."
@@ -90,7 +90,7 @@ source が `https://` の場合, 一時 clone は実行後に削除する.
   - debian: `curl -fsSL https://raw.githubusercontent.com/konattsu/moi/main/scripts/followup-debian.sh | bash -s -- --yes`
   - arch: `curl -fsSL https://raw.githubusercontent.com/konattsu/moi/main/scripts/followup-arch.sh | bash -s -- --yes`
 - Neovim本体, AstroNvim, プラグインの更新方法は [docs/nvim.md](docs/nvim.md) を参照
-- モジュール定義の仕様は [SPECIFICATION.md](SPECIFICATION.md) を参照
+- モジュール定義の仕様は [仕様書](docs/SPECIFICATION.md)（[実行モデル](docs/execution.md)、[ADR](docs/adr.md)） を参照
 
 ## License
 

@@ -1,6 +1,6 @@
 # devcontainer environment
 
-Devcontainer 内で `moi` を適用するための environment。
+Devcontainer 内で `moi` を適用するための environment。[定義と移行の共通事項](../README.md) を参照。npm の実行環境は共有の node module が提供する。
 
 ## Install inside a devcontainer
 
@@ -208,7 +208,7 @@ Neovim 側だけで言語環境を完結させない。
 4. `environments/devcontainer/modules/nvim/files/lua/plugins/lang/<language>.lua` で LSP を有効化する
 5. 保存時 format が必要な filetype だけ `environments/devcontainer/modules/nvim/files/lua/plugins/conform.lua` に追加する
 6. `environments/devcontainer/modules/nvim/module.toml` に追加した Lua file を登録する
-7. `moi -e devcontainer --source "file://$PWD" plan --platform debian nvim` で確認する
+7. `moi -e devcontainer --source "file://$PWD" plan nvim` で確認する
 
 Go を追加する場合の例。
 

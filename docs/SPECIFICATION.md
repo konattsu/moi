@@ -1,372 +1,141 @@
-# Module System
+# moi の仕様
 
-この文書は Rust 実装の現在の挙動を書く。願望や将来案は書かない。
+moi は Linux の個人環境を module 単位で整える。定義には望む状態と適用条件を書き、moi が現在の状態を確認して必要な変更を行う。標準操作で表せない手順は shell に任せる。
 
-## Process Exit
+この文書は機能と管理範囲を定める。実行順序・状態判定・失敗時の契約は [実行モデル](execution.md)、archive の記録と再配置は [archive の配置と管理](archive.md)、全キーは [TOML リファレンス](toml-reference.md)、設計理由は [ADR](adr.md)、構造の検証規則は [Schema](../schemas/README.md) に記す。
 
-`moi` は以下の exit code を返す。
+## 実行対象と権限
 
-- `0`: `plan` または `apply` が最後まで到達した
-- `1`: module 定義、設定、I/O、download などのエラー
-- command の exit code: `commands[].run`、package manager、`git clone` が失敗した場合
+moi は環境を整える対象のユーザーとして実行する。HOME、設定ファイル、配置先、archive の管理記録は実行ユーザーのものを使い、sudo 元のユーザーを推測して切り替えない。
 
-stderr の形式:
+標準操作は実行ユーザーの権限で行い、system package の導入・更新だけ必要に応じて sudo で昇格する。独自の shell が管理者権限を必要とする場合は、定義側で sudo を明記する。
 
-```text
-error: <message>
-```
+同一ユーザーによる複数の apply の同時実行はサポートしない。重複実行を検出するロックは設けず、同時実行時の結果の整合性や復旧を保証しない。
 
-command 実行が exit code `N` で失敗した場合:
+## environment と module
 
-```text
-error: command failed with exit code N
-```
+environment は module の集合。一つの実行先には一つの environment を使う運用を想定する。module は `<folder_name>/<environment>/modules/<name>/module.toml` に置き、`name` をディレクトリ名と一致させる。共有 module はディレクトリへの symlink でも取り込める。
 
-`plan` と `install-command` は結果を stdout に出す。`apply` の進捗と子processの
-stdout/stderrは stderr に出す。
+指定された environment の全 module を読み、構文・型・未知キー・名前・パスの書式・依存先の存在・循環を検証する。未選択 module の定義不備もエラーにする。他の environment は検証しない。
 
-`apply` は repository、package、moduleの処理をstageとして `=> [N/M]`、その中の
-clone、command、moduleをstepとして `==> [N/M]` で表示する。HTTPS sourceでは
-3 stage、local sourceではrepository stageを省略して2 stageとする。packageまたは
-moduleが空でもstageは省略しない。TTYでは実行中stepの直近6行を灰色で
-表示し、成功時に消去して開始行へ `✓` と所要時間を書き足す。1秒未満の所要時間は
-省略する。失敗時には消去しない。非TTYまたは `-v` 指定時は全行を残し、成功行は
-追加しない。TTYの色は `NO_COLOR` が設定されている場合は無効にする。
+module 名の指定がなければ全 module を選ぶ。指定があれば、その module と `depends_on` の推移的な依存先を選ぶ。依存先を先に実行し、順序が制約されない候補は名前の辞書順で選ぶ。ある module に依存している利用側を逆向きに選ぶことはない。
 
-## Entry Points
-
-install:
-
-```sh
-curl -fsSL https://raw.githubusercontent.com/konattsu/moi/main/install.sh \
-  | MOI_ENVIRONMENT=host bash -s -- apply
-```
-
-`install.sh` は GitHub Releases の latest から実行中 OS/architecture に合う archive と SHA-256 checksum を download し、検証・展開した executable file を `MOI_SELF_PATH` に配置してから実行する。
-
-default:
-
-```sh
-MOI_GITHUB_REPOSITORY=konattsu/moi
-MOI_SELF_PATH=~/.local/bin/moi
-MOI_RELEASE_BASE=https://github.com/konattsu/moi/releases/latest/download
-MOI_RELEASE_ASSET=moi-<target-triple>.tar.gz
-```
-
-archive は `moi-<target-triple>/` directory 以下に `moi`, `LICENSE-MIT`, `LICENSE-APACHE`, `THIRD-PARTY-LICENSES.txt` を含む。
-
-対応 target:
-
-- `x86_64-unknown-linux-gnu`
-- `aarch64-unknown-linux-gnu`
-
-直接実行:
-
-```sh
-moi [-e|--environment ENV] [--folder-name NAME] [--source SOURCE] [--quiet|-v...] plan [options] [module ...]
-moi [-e|--environment ENV] [--folder-name NAME] [--source SOURCE] [--quiet|-v...] apply [options] [module ...]
-moi [--folder-name NAME] [--source SOURCE] [--quiet|-v...] install-command -e|--environment ENV [--install-source URL_OR_PATH] [--install-script PATH] [plan|apply] [arg ...]
-moi [--quiet|-v...] upgrade [--force]
-```
-
-`moi` は `plan` / `apply` / `install-command` / `upgrade` のいずれかの subcommand を必須とする。
-`-e` / `--environment`, `--folder-name`, `--source`, `--quiet`, `-v` / `--verbose` は command の前後どちらにも置ける。
-`--quiet` は通常出力と成功した子processの出力を抑制し、失敗時は直近20行を表示する。
-`-v` / `--verbose` は実行ログを残して診断出力を増やし、複数回指定できる。
-
-`install-command` は install script を取得して `plan` または `apply` を実行する shell command を stdout に表示する。
-出力だけを行い、repository clone、module load、config 自動生成は行わない。
-`install-command` の `-e` / `--environment` は必須で、`MOI_ENVIRONMENT` または config の `default_environment` には fallback しない。
-操作を省略した場合は `apply` を出力する。
-
-`upgrade` は GitHub Releases の latest tag と実行中の version を比較する。同じ version、または実行中の方が新しい場合は何も変更しない。`--force` を指定すると同じ version でも再インストールする。
-更新時は実行環境用archiveとSHA-256 checksumをdownload・検証し、実行中のbinaryと同じdirectoryに一時fileを作成してからatomicに置換する。旧binaryは保持しない。
-
-default:
-
-```text
-MOI_INSTALL_SOURCE=https://raw.githubusercontent.com/konattsu/moi/main/
-MOI_INSTALL_SCRIPT=install.sh
-```
-
-`--install-source` / `MOI_INSTALL_SOURCE` / `default_install_source` は install script を置く base URL または local directory を表す。
-`https://` で始まる場合は `curl -fsSL` を使う。
-`file://` で始まる場合、または URL でない場合は local path として扱い、`cat` を使う。
-`--install-script` / `MOI_INSTALL_SCRIPT` / `default_install_script` は install source からの相対 path を表す。
-absolute path または `..` を含む path は停止する。
-
-## Settings
-
-設定ファイル:
-
-```sh
-~/.config/moi/config.toml
-```
-
-schema:
+`depends_on` は実行に必要な module の宣言であり、外部コマンドの一覧ではない。選択を伴わない順序指定や全体の phase は設けない。module 内は `operations` の記述順に実行し、操作間の依存グラフは持たない。
 
 ```toml
-default_environment = "host"
-default_folder_name = "environments"
-default_source = "https://github.com/konattsu/moi.git"
-default_install_source = "file:///home/natsu/moi"
-default_install_script = "install.sh"
-```
+name = "editor"
+depends_on = ["core"]
+note = ["エディタを起動して認証する"]
 
-設定値は command line argument, environment variable, 設定ファイルの順に解決する。
-
-| value | command line | environment | config |
-| --- | --- | --- | --- |
-| environment | `-e`, `--environment` | `MOI_ENVIRONMENT` | `default_environment` |
-| folder_name | `--folder-name` | `MOI_FOLDER_NAME` | `default_folder_name` |
-| source | `--source` | `MOI_SOURCE` | `default_source` |
-| install_source | `--install-source` | `MOI_INSTALL_SOURCE` | `default_install_source` |
-| install_script | `--install-script` | `MOI_INSTALL_SCRIPT` | `default_install_script` |
-
-`environment` が解決できない場合は停止する。
-`folder_name` が解決できない場合は `environments` を使う。
-`source` が解決できない場合は `https://github.com/konattsu/moi.git` を使う。
-`install_source` が解決できない場合は `https://raw.githubusercontent.com/konattsu/moi/main/` を使う。
-`install_script` が解決できない場合は `install.sh` を使う。
-
-`install_source` と `install_script` は config file に書かれていれば読むが、設定ファイルが存在しない場合の自動生成には含めない。
-
-`source` は `https://` または `file:///` で始まらなければ停止する。
-`folder_name` は repository-relative path で、absolute path または `..` を含む場合は停止する。
-
-設定ファイルが存在しない場合、`moi` は解決後の値を `~/.config/moi/config.toml` に書く。
-
-## Repository Source
-
-`source` が `https://` で始まる場合、`moi` は一時 directory を作り、以下を実行する。
-
-```sh
-git clone --depth 1 --branch "$MOI_BRANCH" "$source" "<tmpdir>"
-```
-
-`MOI_BRANCH` の default は `main`。
-
-`source` が `file:///` で始まる場合、その path を repository root として使う。
-
-設定 repository は release binary に含めない。`moi` は実行ごとに `source` から module 定義と配置 file を読む。
-
-## Module Selection
-
-module は `<folder_name>/<environment>/modules/<name>/module.toml` で定義する。
-
-`name` は directory 名と一致しなければならない。
-
-module 名を渡さない場合、`module.toml` を持つ全 module を読む。
-module 名を渡した場合、渡した module と、その `depends_on` を再帰的に読む。
-
-停止条件:
-
-- 存在しない module 名を指定した
-- `depends_on` に存在しない module 名を書いた
-- dependency cycle がある
-- `module.toml` に未知の key がある
-
-処理順:
-
-- 依存先を先に処理する
-- 同じ階層の module は module 名の辞書順で処理する
-
-top-level key:
-
-- `name`
-- `depends_on`
-- `followups`
-- `packages`
-- `dirs`
-- `files`
-- `blocks`
-- `commands`
-- `env`
-
-## Platform
-
-`dirs` / `files` / `blocks` / `commands` は `platform` を持てる。
-
-```toml
-[[commands]]
-platform = "arch"
-run = "..."
-```
-
-`platform` は `common` / `debian` / `arch` のいずれか。省略時は `common`。
-
-`common` は全 platform で適用する。
-`debian` / `arch` は対象 platform と一致する場合だけ適用する。
-
-対象 platform は既定で `/etc/os-release` の `ID` / `ID_LIKE` から自動判定する。
-`--platform debian` / `--platform arch` を指定した場合はその値を使う。
-
-## Packages
-
-```toml
 [packages]
-apt = ["git", "curl"]
-pacman = ["git", "curl"]
-```
+apt = ["ripgrep"]
+pacman = ["ripgrep"]
 
-`apply` は選択 module から対象 platform の package list を集める。重複する package 名は 1 回にまとめる。
+[env]
+path_prepend = ["~/.local/bin"]
 
-Debian:
-
-```sh
-sudo apt-get update
-sudo apt-get install -y <packages...>
-```
-
-Arch:
-
-```sh
-sudo pacman -S --needed --noconfirm <packages...>
-```
-
-`apply --upgrade-packages` を指定した場合、Debian では `sudo apt-get upgrade --with-new-pkgs -y` を実行してから install する。`--with-new-pkgs` により更新に必要な新しい依存パッケージの追加を許可するが、既存パッケージは削除しない。Arch では `pacman -S` の代わりに `pacman -Syu` を使う。
-
-`plan` は package 名を表示するだけで package manager command を実行しない。
-
-## Paths
-
-`dirs.path`, `files.dst`, `blocks.dst`, `env.path_prepend` の path expansion:
-
-- `~` は `$HOME` に変換する
-- `~/x` は `$HOME/x` に変換する
-- `$` を含む path は停止する
-
-`files.src` と `blocks.src` は module-relative path。absolute path または `..` を含む場合は停止する。
-
-`dirs.mode` と `files.mode` は 3-4 桁の 8 進数 string。表示時は 4 桁の 8 進数に正規化する。
-
-## Dirs
-
-```toml
-[[dirs]]
-path = "~/.ssh"
-mode = "700"
-```
-
-`apply`:
-
-1. directory を `parents=true, exist_ok=true` で作成する
-2. `mode` があれば existing directory も含めて mode を変更する
-
-owner / group は変更しない。
-
-## Files
-
-```toml
-[[files]]
-src = "files/config"
-dst = "~/.config/moi/git/config"
+[[operations]]
+kind = "file"
+src = "files/init.lua"
+dst = "~/.config/editor/init.lua"
 mode = "644"
 ```
 
-`apply`:
+## 標準操作
 
-1. `module.path / src` が通常 file でなければ停止する
-2. `dst.parent` を作成する
-3. `src` を `dst` へ copy する
-4. `mode` があれば `dst` の mode を変更する
+| kind | 宣言するもの | 充足している状態 |
+| --- | --- | --- |
+| `directory` | `path`、任意の `mode` | ディレクトリがあり、指定した権限を満たす |
+| `file` | `src`、`dst`、任意の `mode` | 通常ファイルの内容と指定した権限が一致する |
+| `symlink` | `target`、`dst` | リンク先が宣言と一致する |
+| `block` | `src`、`dst`、`marker` | 一意な marker 内の内容が一致する |
+| `archive` | 成果物、配置先、維持方針 | 配置内容が維持方針を満たす |
+| `shell` | `run`、任意の `check` | check の契約に従う |
 
-`dst` が存在する場合は backup なしで内容を置き換える。
+各操作に `kind` を付ける。診断では module 名、1始まりの配列位置（`operations[1]`）、kind、対象パスを使う。操作に名前や一意な ID は要求しない。共通の適用条件 `when` により、distro・architecture・WSL を指定できる。
 
-## Blocks
+ディレクトリとファイルの親は必要に応じて作る。`mode` は3〜4桁の8進数文字列とし、owner / group は管理しない。`file` は既存ファイル全体を置き換え、`block` は次の marker の内側だけを管理する。内容が一致する操作は書き換えない。
 
-```toml
-[[blocks]]
-src = "files/keychain.sh"
-dst = "~/.zshrc"
-marker = "moi:keychain"
+```text
+# >>> moi:example >>>
+# <<< moi:example <<<
 ```
 
-marker line:
+marker の欠落した対、重複、逆順はエラーとし、推測で修復しない。marker は空文字列・制御文字・区切り記号を含めない。
+
+選択され、今回の `when` に一致する操作同士について、同じ対象全体の重複管理、file と block の併用、archive の管理範囲の重複・包含、所有範囲への別操作の書き込みを変更開始前に拒否する。同じファイルへの block は marker が異なれば共存できる。symlink はリンク自身を管理し、リンク先の所有権を持たない。
+
+## パスと入力
+
+配置先と `env.path_prepend` は絶対パスか `~` / `~/...` とする。`~` は実行ユーザーの HOME に展開する。環境変数や shell 式は展開しない。パスの詳細な形式は TOML リファレンスに従う。
+
+標準操作の配置先は、親ディレクトリに symlink を含めない。管理対象自身も宣言した種類と一致させ、file / directory / block / archive が symlink をたどって変更することは許可しない。symlink 操作だけがリンク自身を作成・変更する。この制限は書き込み先の規則であり、共有 module の symlink や、symlink 操作の target の存在を制限するものではない。
+
+`file.src` と `block.src` は module 基準の相対パスで、取得した repository 内の静的な通常ファイルを参照する。絶対パスと `..` を拒否する。先行 shell が生成・変更するファイルを標準操作の入力には使わない。生成が必要なら生成から配置まで shell 内で行う。
+
+src は module を基準に解決する。共有する静的入力への symlink は許可するが、リンク解決後の実体は取得した repository 内の通常ファイルに限定する。配置先の親 symlink を禁止する規則は入力側には適用しない。
+
+## 実行環境と PATH
+
+起動時の環境変数を継承する。shell は非対話・非ログインの `bash -c` とし、ユーザーの shell 設定は自動で読み込まない。`BASH_ENV` と export された Bash 関数は子プロセスへ引き継がない。必要な読み込みは module に明記する。
+
+静的な PATH は `env.path_prepend` で宣言し、自 module の開始時に先頭へ加えて後続に引き継ぐ。導入後に PATH を解決する場合は、提供側 module に `env.path_export` を宣言する。全操作の成功後に一度取得し、以後の子プロセスへ渡す。操作がすべて充足していた場合も取得する。
+
+`path_export` は宣言されていれば毎回実行する。起動時の PATH や静的な宣言だけで足りる定義では省略できる。
+
+利用側は `depends_on` を宣言して通常のコマンドを実行する。ツール固有の初期化は提供側に定義する。PATH は moi が保持して子プロセスごとに設定し、呼び出し元の端末へは書き戻さない。
+
+## パッケージと archive
+
+選択 module の `packages.apt` または `packages.pacman` を集約して重複を除き、module 操作より先に導入する。Debian 系は apt、Arch 系は pacman を使う。通常の apply は不足分を導入し、システム全体の更新は `apply --upgrade-packages` で明示する。
+
+`packages` は module 操作前に導入可能なパッケージに使う。追加リポジトリ・署名鍵の登録が必要なものは、登録から package 導入まで shell で行う。module の依存順によって package の一括導入を遅らせることはない。package manager の依存解決や更新結果を moi 独自の状態として複製しない。
+
+archive は url・sha256・format・root・dst と維持の項目を `[[operations]]` に直接書く。適用条件は when に統一し、architecture 共通なら when.arch を省略、異なる場合だけ操作を分ける。
+
+include 省略時は root 全体を専用 dst へ配置し、そのディレクトリ全体を管理する。include 指定時は root 内の通常ファイルを完全一致で選び、dst 配下の同じ相対位置へ直接配置する。管理対象は選択したファイルだけとし、共有の dst 全体は変更・削除しない。glob・除外・リネーム・内容加工は扱わない。
+
+両 policy とも、version・配布物・include・policy が最後に導入成功した定義と異なれば再導入する。version は最低版の指定ではなく、実際のアプリの版の取得・大小比較は行わない。
+
+pinned は定義が同じ場合も管理範囲の配布内容に収束させる。全体配置では余分なファイルも差分とし、選択配置では選択外のファイルを扱わない。preserve は定義が同じ間、required_paths の存在・種類・必要な実行権限だけを確認して内容変更を許す。選択配置の required_paths は include の部分集合にする。定義変更・修復時の downgrade は許容し、どちらも起動成功そのものは保証しない。
+
+管理対象は正規化した絶対パスで識別し、module 名や environment 名を所有者にしない。管理記録は全体配置の専用ディレクトリごと、選択配置の最終配置ファイルごとに、管理対象パスの SHA-256 をファイル名とする JSON として ~/.local/state/moi/archives/ に保存する。共有 dst が同じでも選択ファイルが違えば記録は衝突しない。
+
+記録のない既存対象は引き取らない。再配置では管理対象だけを退避・差し替え、配置確認と操作内の全記録の保存成功後に旧対象を削除する。include から外した対象の自動削除、中断復旧用の記録、自動復旧は設けない。詳細は [archive の配置と管理](archive.md) に従う。
+
+## CLI と設定
 
 ```sh
-# >>> moi:keychain >>>
-# <<< moi:keychain <<<
+moi -e host plan [--show-note] [module ...]
+moi -e host apply [--upgrade-packages] [--show-note] [module ...]
+moi install-command -e host [plan|apply] [arg ...]
+moi upgrade [--force]
 ```
 
-`marker` は空文字、`>>>`、改行を含めない。
+plan と apply は同じ定義・選択・検証規則を使う。環境は実行先から検出し、別環境への適用を装う上書きオプションは設けない。
 
-`apply`:
+`note` は選択 module の案内であり、plan / apply に `--show-note` を指定したときだけ表示する。初回かどうかにかかわらず、既定では表示しない。案内に書かれた処理は実行せず、表示履歴や初回導入の記録も持たない。
 
-1. `module.path / src` が通常 file でなければ停止する
-2. `dst.parent` を作成する
-3. `dst` があれば UTF-8 text として読む。なければ空文字列にする
-4. marker block がなければ file 末尾へ追加する
-5. marker block が 1 個あれば start line から end line までを置き換える
-6. start/end の数が違う、複数ある、順序が逆の場合は停止する
+設定ファイルは `~/.config/moi/config.toml`。読み込むだけでは生成・更新しない。値の優先順位は CLI、環境変数、設定ファイル、既定値の順とする。
 
-追加時は、既存 content が空でない場合だけ block 前に空行を入れ、末尾が newline 3 個になるまで newline を足す。
+| CLI | 環境変数 | 設定キー | 既定値 |
+| --- | --- | --- | --- |
+| `-e`, `--environment` | `MOI_ENVIRONMENT` | `default_environment` | 必須 |
+| `--folder-name` | `MOI_FOLDER_NAME` | `default_folder_name` | `environments` |
+| `--source` | `MOI_SOURCE` | `default_source` | `https://github.com/konattsu/moi.git` |
+| `--install-source` | `MOI_INSTALL_SOURCE` | `default_install_source` | `https://raw.githubusercontent.com/konattsu/moi/main/` |
+| `--install-script` | `MOI_INSTALL_SCRIPT` | `default_install_script` | `install.sh` |
 
-## Commands
+`source` は HTTPS の Git repository または `file:///` のローカル checkout。HTTPS は一時領域へ clone し、終了時に片付ける。branch は `MOI_BRANCH`、既定値は `main`。folder と environment は repository 内に収まる相対パスとし、environment と module 名は単一のパス要素とする。
 
-```toml
-[[commands]]
-run = "npm install -g @openai/codex"
-unless = "command -v codex"
-requires = ["npm"]
-```
+`install-command` は明示された environment を使う導入コマンドを stdout に出す。操作の既定値は apply。install source は HTTPS またはローカルディレクトリ、install script はその内側の相対パスとする。module の読み込みや導入は行わない。
 
-`requires` は executable name のみ。ASCII 英数字、`.`、`_`、`+`、`-` 以外を含む場合は停止する。
+`install.sh` と `upgrade` は実行先に合う moi の release archive と SHA-256 を取得し、検証して binary を配置する。対応する Linux target は x86_64 / aarch64 の GNU 環境。`upgrade` は新しい release に更新し、`--force` は同版の再配置を許可する。binary の置換は同じディレクトリ上の一時ファイルから行う。
 
-`apply`:
+## 出力と管理範囲
 
-1. `requires` の各 command を `PATH` から探す
-2. command が `node` / `npm` / `npx` の場合、見つからなければ `~/.nvm/nvm.sh` を読み込んだ PATH で再確認する
-3. 見つからない `requires` があれば停止する
-4. `unless` があれば `bash -c <unless>` を module directory で実行する
-5. `unless` の exit code が 0 なら `run` を実行しない
-6. `unless` の exit code が 0 以外なら `bash -c <run>` を module directory で実行する
+plan と導入コマンドは stdout、進捗・診断・子プロセス出力・明示された note は stderr に出す。`--quiet` は通常出力を抑えるが失敗理由は残し、`-v` は診断を増やす。見た目や表示行数は動作契約に含めない。
 
-`apply --ignore-unless` は `unless` を評価せず `run` を実行する。
+終了コードは成功 `0`、定義・判定・I/O などの失敗 `1`。変更処理の子プロセスが失敗した場合はその終了コードを返し、シグナル終了など数値が得られない場合は `1` とする。失敗には module、操作の配列位置と kind、失敗した段階、原因、子プロセスの出力を添える。
 
-`plan` は `unless` / `run` を実行しない。
-
-## env.path_prepend
-
-```toml
-[env]
-path_prepend = ["~/.local/bin"]
-```
-
-module 処理の先頭で展開し、executor process の `PATH` 先頭に追加する。
-この変更は `moi` process と、その子 process にだけ効く。
-
-## Follow-ups
-
-```toml
-followups = ["Run `gh auth login` to authenticate with GitHub."]
-```
-
-`followups` は手動の後続作業として表示する文字列。実行しない。
-
-表示条件:
-
-- `install.sh` 経由の初回導入では表示する
-- `--show-followups` を指定した場合は表示する
-- `--no-followups` を指定した場合は表示しない
-- 通常の `plan` / `apply` では表示しない
-
-## State Boundaries
-
-`apply` が変更するもの:
-
-- `[[dirs]]` の directory と mode
-- `[[files]]` の destination file 全体
-- `[[blocks]]` の marker block 内
-- `[[commands]]` が実行する command の結果
-
-`apply` がこの repo で直接管理しないもの:
-
-- SSH 秘密鍵
-- `~/.ssh/allowed_signers`
-- GitHub login
-- default shell
-- docker group membership
-- keychain に渡す個別 key
-
-これらは `followups` または `scripts/followup-*.sh` の範囲に置く。
+失敗時は後続を止め、それまでの変更は保持する。宣言から消した対象の自動削除、汎用 rollback、任意 shell の副作用の解析、並行 apply の調整は扱わない。中断後に管理記録と配置が一致せず通常の状態判定で扱えない場合は、利用者が退避・整理して再実行する。

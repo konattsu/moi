@@ -2,31 +2,28 @@
 
 ## 構成
 
-このリポジトリではNeovim関連を3層に分けて管理する。
+この repository では Neovim 本体、Lua プラグイン群、設定を分けて管理する。
 
-- **Neovim**: エディタ本体。moduleで指定した固定versionの公式tarballを展開して
-  `~/.local/share/nvim-linux-x86_64` に配置する。
-- **AstroNvimとプラグイン**: Neovim上で動くLuaプラグイン群。`lazy.nvim` と
-  `lazy-lock.json` が管理する。
-- **設定**: `environments/host/modules/nvim/files` に置き、`moi apply nvim` で
-  `~/.config/nvim` へコピーする。
+- 本体：module.toml の pinned archive。Neovim 0.12.4 の x86_64 / aarch64 の固定 URL と SHA-256 を使い、`~/.local/share/moi/apps/nvim` へ配置する。
+- 起動リンク：`~/.local/bin/nvim` から本体の bin/nvim へ symlink する。
+- AstroNvim とプラグイン：lazy.nvim と repository の lazy-lock.json が管理する。
+- 設定：host / devcontainer の module 内の静的ファイルを file 操作で `~/.config/nvim` へコピーする。
 
-Neovim本体とプラグインは同じ世代で固定する。現在は Neovim `0.12.4` と
-repository管理の `lazy-lock.json` を使う。Neovim `0.13` 系へ移るときは、
-Neovim本体のversionとlockfileを同じ更新作業で変更する。
+host と devcontainer の本体は同じ版に揃える。npm は node module が提供する default の Node の PATH を使う。Debian の fd リンクと WSL x86_64 の win32yank は独立 module とし、nvim の依存から用意する。
 
-## Neovim本体の更新
+## Neovim 本体の更新
 
-`moi apply nvim` は指定versionのNeovimが既にあればインストールを省略する。
-既存環境のNeovimだけを更新する場合は、module内の `NVIM_VERSION` と `unless`
-のversion判定を変更してから `moi apply nvim` を実行する。
+host / devcontainer 両方の module.toml の archive 操作の version と、when.arch で分けた各操作の URL・SHA-256・root を更新する。版の問い合わせをする shell や実行時の latest 取得は行わない。
 
 ```sh
-moi apply nvim
+moi -e host plan nvim
+moi -e host apply nvim
 nvim --version
 ```
 
-これはNeovim本体だけを更新し、設定やプラグインを変更しない。
+pinned は定義と実配置が一致していれば取得・解凍・再配置しない。定義変更や実配置の差分がある場合は宣言した成果物から再配置する。apply nvim は本体だけでなく、選択された依存と設定も適用する。
+
+旧本体の `~/.local/share/nvim-linux-x86_64` は自動削除しない。新しい実行器と管理記録への移行は [environment の移行手順](../environments/README.md#旧定義からの移行) を参照。
 
 ## AstroNvimとプラグインの更新
 
@@ -55,7 +52,7 @@ devcontainer 専用pluginのentryが落ちる可能性がある。
 
 ## 通常の更新順序
 
-1. Neovim本体を更新する場合は、host/devcontainer両方の `NVIM_VERSION` と `unless` を変更する。
+1. Neovim本体を更新する場合は、host/devcontainer 両方の archive の version と成果物情報を変更する。
 2. `moi apply nvim` で指定versionのNeovimと既存lockfileを配置する。
 3. `:Lazy update` でAstroNvimとプラグインを更新する。
 4. Neovimを再起動し、必要ならもう一度 `:Lazy update` を実行する。
