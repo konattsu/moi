@@ -1,26 +1,29 @@
 pub(crate) fn run(
     args: &crate::cli::UpgradeArgs,
+    reporter: &mut crate::reporter::Reporter,
 ) -> std::result::Result<(), crate::error::MoiError> {
     let current = semver::Version::parse(env!("CARGO_PKG_VERSION"))
         .map_err(|source| crate::error::MoiError::config(source.to_string()))?;
     let latest = latest_version()?;
 
     if current > latest {
-        crate::output!("moi v{current} is newer than the latest release (v{latest}).");
+        reporter.log(format!(
+            "moi v{current} is newer than the latest release (v{latest})."
+        ));
         return Ok(());
     }
     if current == latest && !args.force {
-        crate::output!("moi v{current} is already up to date.");
+        reporter.log(format!("moi v{current} is already up to date."));
         return Ok(());
     }
 
     if current == latest {
-        crate::output!("Reinstalling moi v{current}...");
+        reporter.log(format!("Reinstalling moi v{current}..."));
     } else {
-        crate::output!("Upgrading moi v{current} to v{latest}...");
+        reporter.log(format!("Upgrading moi v{current} to v{latest}..."));
     }
-    install_latest()?;
-    crate::output!("Successfully upgraded moi to v{latest}.");
+    install_latest(reporter)?;
+    reporter.log(format!("Successfully upgraded moi to v{latest}."));
     Ok(())
 }
 
@@ -29,14 +32,18 @@ fn latest_version() -> std::result::Result<semver::Version, crate::error::MoiErr
         .unwrap_or_else(|_| "konattsu/moi".to_string());
     let url = std::env::var("MOI_LATEST_RELEASE_URL")
         .unwrap_or_else(|_| format!("https://github.com/{repository}/releases/latest"));
-    let output = std::process::Command::new("curl")
-        .args(["-fsSL", "-o", "/dev/null", "-w", "%{url_effective}", &url])
+    let mut command = std::process::Command::new("curl");
+    command.args(["-fsSL", "-o", "/dev/null", "-w", "%{url_effective}", &url]);
+    crate::exec::environment::sanitize(&mut command);
+    let output = command
         .output()
         .map_err(|source| crate::error::MoiError::io("curl", source))?;
     if !output.status.success() {
-        return Err(crate::error::MoiError::CommandExit(
-            output.status.code().unwrap_or(1),
-        ));
+        return Err(crate::error::MoiError::config(format!(
+            "release lookup failed ({}): {}",
+            output.status,
+            String::from_utf8_lossy(&output.stderr)
+        )));
     }
     let effective_url = std::str::from_utf8(&output.stdout)
         .map_err(|source| crate::error::MoiError::config(source.to_string()))?;
@@ -63,11 +70,14 @@ fn parse_release_version(
     })
 }
 
-fn install_latest() -> std::result::Result<(), crate::error::MoiError> {
+fn install_latest(
+    reporter: &mut crate::reporter::Reporter,
+) -> std::result::Result<(), crate::error::MoiError> {
     let target = target_triple()?;
     let package = format!("moi-{target}");
     let asset = std::env::var("MOI_RELEASE_ASSET")
         .unwrap_or_else(|_| format!("{package}.tar.gz"));
+    crate::path::name(&asset).map_err(crate::error::MoiError::config)?;
     let repository = std::env::var("MOI_GITHUB_REPOSITORY")
         .unwrap_or_else(|_| "konattsu/moi".to_string());
     let release_base = std::env::var("MOI_RELEASE_BASE").unwrap_or_else(|_| {
@@ -81,49 +91,58 @@ fn install_latest() -> std::result::Result<(), crate::error::MoiError> {
     let archive = tempdir.path().join(&asset);
     let checksum = tempdir.path().join(format!("{asset}.sha256"));
 
-    curl_download(&url, &archive)?;
-    curl_download(&format!("{url}.sha256"), &checksum)?;
-    run_command(
-        std::process::Command::new("sha256sum")
-            .args(["--check", "--status"])
-            .arg(&checksum)
-            .current_dir(tempdir.path()),
-    )?;
-    run_command(
-        std::process::Command::new("tar")
-            .arg("-xzf")
-            .arg(&archive)
-            .current_dir(tempdir.path()),
-    )?;
-
-    let binary = tempdir.path().join(package).join("moi");
+    curl_download(&url, &archive, reporter)?;
+    curl_download(&format!("{url}.sha256"), &checksum, reporter)?;
+    let checksum_text = std::fs::read_to_string(&checksum)
+        .map_err(|e| crate::error::MoiError::io(&checksum, e))?;
+    let expected = release_checksum(&checksum_text, &asset)?;
+    if crate::exec::archive::checksum(&archive)? != expected {
+        return Err(crate::error::MoiError::config("release checksum mismatch"));
+    }
+    let unpacked = tempdir.path().join("unpacked");
+    crate::exec::archive::unpack_release(&archive, &unpacked)?;
+    let binary = unpacked.join(package).join("moi");
+    crate::path::parents(&binary)?;
+    if !crate::path::metadata(&binary)?.is_some_and(|m| m.is_file()) {
+        return Err(crate::error::MoiError::config(
+            "release binary must be a regular file",
+        ));
+    }
     replace_current_executable(&binary)
 }
 
 fn curl_download(
     url: &str,
     destination: &std::path::Path,
+    reporter: &mut crate::reporter::Reporter,
 ) -> std::result::Result<(), crate::error::MoiError> {
-    run_command(
+    crate::exec::shell::run_command(
         std::process::Command::new("curl")
             .args(["-fsSL", url, "-o"])
             .arg(destination),
+        reporter,
     )
 }
 
-fn run_command(
-    command: &mut std::process::Command,
-) -> std::result::Result<(), crate::error::MoiError> {
-    let program = command.get_program().to_string_lossy().into_owned();
-    let status = command
-        .status()
-        .map_err(|source| crate::error::MoiError::io(program, source))?;
-    if !status.success() {
-        return Err(crate::error::MoiError::CommandExit(
-            status.code().unwrap_or(1),
+fn release_checksum(text: &str, asset: &str) -> Result<String, crate::error::MoiError> {
+    let mut matches = Vec::new();
+    for line in text.lines() {
+        let mut fields = line.split_whitespace();
+        if let (Some(digest), Some(filename), None) =
+            (fields.next(), fields.next(), fields.next())
+            && filename.trim_start_matches('*') == asset
+            && digest.len() == 64
+            && digest.bytes().all(|b| b.is_ascii_hexdigit())
+        {
+            matches.push(digest.to_ascii_lowercase());
+        }
+    }
+    if matches.len() != 1 {
+        return Err(crate::error::MoiError::config(
+            "release checksum must uniquely identify the downloaded asset",
         ));
     }
-    Ok(())
+    Ok(matches.remove(0))
 }
 
 fn replace_current_executable(
@@ -201,5 +220,25 @@ mod tests {
         .unwrap_err();
 
         assert!(error.to_string().contains("could not determine"));
+    }
+}
+
+#[cfg(test)]
+mod checksum_tests {
+    #[test]
+    fn release_checksum_identifies_the_exact_asset() {
+        let digest = "a".repeat(64);
+        assert_eq!(
+            super::release_checksum(&format!("{digest}  moi.tar.gz\n"), "moi.tar.gz")
+                .unwrap(),
+            digest
+        );
+        for text in [
+            format!("{digest}  different.tar.gz"),
+            format!("{digest}  moi.tar.gz\n{digest}  moi.tar.gz"),
+            "invalid  moi.tar.gz".into(),
+        ] {
+            assert!(super::release_checksum(&text, "moi.tar.gz").is_err());
+        }
     }
 }

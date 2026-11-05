@@ -63,12 +63,8 @@ pub(crate) enum Command {
 
 #[derive(Debug, clap::Args)]
 pub(crate) struct RunArgs {
-    #[arg(long, default_value_t = PlatformArg::Auto, help = "Target platform")]
-    pub(crate) platform: PlatformArg,
-    #[arg(long, conflicts_with = "no_followups", help = "Show follow-up tasks")]
-    show_followups: bool,
-    #[arg(long, conflicts_with = "show_followups", help = "Hide follow-up tasks")]
-    no_followups: bool,
+    #[arg(long, help = "Show selected modules' notes")]
+    pub(crate) show_note: bool,
     #[arg(help = "Module names to process")]
     pub(crate) modules: Vec<String>,
 }
@@ -77,8 +73,6 @@ pub(crate) struct RunArgs {
 pub(crate) struct ApplyArgs {
     #[command(flatten)]
     pub(crate) run: RunArgs,
-    #[arg(long, help = "Run commands without evaluating their unless guards")]
-    pub(crate) ignore_unless: bool,
     #[arg(
         long,
         help = "Upgrade system packages before installing missing packages"
@@ -119,13 +113,6 @@ pub(crate) struct UpgradeArgs {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, clap::ValueEnum)]
-pub(crate) enum PlatformArg {
-    Auto,
-    Debian,
-    Arch,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, clap::ValueEnum)]
 pub(crate) enum InstallOperationArg {
     Plan,
     Apply,
@@ -137,28 +124,6 @@ impl Cli {
             quiet: self.output.quiet,
             verbose: self.output.verbose,
         }
-    }
-}
-
-impl RunArgs {
-    pub(crate) fn followups_override(&self) -> Option<bool> {
-        if self.show_followups {
-            return Some(true);
-        }
-        if self.no_followups {
-            return Some(false);
-        }
-        None
-    }
-}
-
-impl std::fmt::Display for PlatformArg {
-    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        formatter.write_str(match self {
-            PlatformArg::Auto => "auto",
-            PlatformArg::Debian => "debian",
-            PlatformArg::Arch => "arch",
-        })
     }
 }
 
@@ -197,24 +162,10 @@ mod tests {
     }
 
     #[test]
-    fn test_reject_conflicting_followup_flags() {
-        let error = super::Cli::try_parse_from([
-            "moi",
-            "plan",
-            "--show-followups",
-            "--no-followups",
-        ])
-        .unwrap_err();
-
-        assert_eq!(error.kind(), clap::error::ErrorKind::ArgumentConflict);
-    }
-
-    #[test]
-    fn test_reject_unknown_platform() {
-        let error = super::Cli::try_parse_from(["moi", "plan", "--platform", "fedora"])
-            .unwrap_err();
-
-        assert_eq!(error.kind(), clap::error::ErrorKind::InvalidValue);
+    fn rejects_removed_options() {
+        for option in ["--platform", "--ignore-unless", "--show-followups"] {
+            assert!(super::Cli::try_parse_from(["moi", "apply", option]).is_err());
+        }
     }
 
     #[test]
@@ -294,8 +245,7 @@ mod tests {
             "--environment",
             "devcontainer",
             "plan",
-            "--platform",
-            "arch",
+            "--show-note",
             "nvim",
         ]);
         let super::Command::Install(args) = cli.command else {
@@ -303,7 +253,7 @@ mod tests {
         };
 
         assert_eq!(args.operation, super::InstallOperationArg::Plan);
-        assert_eq!(args.args, ["--platform", "arch", "nvim"]);
+        assert_eq!(args.args, ["--show-note", "nvim"]);
     }
 
     #[test]

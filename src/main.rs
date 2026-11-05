@@ -12,13 +12,9 @@ fn env_main() -> i32 {
 fn exit_code(result: std::result::Result<(), moi::error::MoiError>) -> i32 {
     match result {
         Ok(()) => 0,
-        Err(moi::error::MoiError::CommandExit(code)) => {
-            write_error(format_args!("command failed with exit code {code}"));
-            code
-        }
         Err(error) => {
             write_error(format_args!("{error}"));
-            1
+            error.exit_code()
         }
     }
 }

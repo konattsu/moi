@@ -59,7 +59,8 @@ url="$release_base/$asset"
 
 mkdir -p "$(dirname "$self_path")"
 tmp="$(mktemp -d)"
-trap 'rm -rf "$tmp"' EXIT
+replacement=""
+trap 'rm -rf -- "$tmp"; if [[ -n "$replacement" ]]; then rm -f -- "$replacement"; fi' EXIT
 
 curl -fsSL "$url" -o "$tmp/$asset"
 curl -fsSL "$url.sha256" -o "$tmp/$asset.sha256"
@@ -70,6 +71,11 @@ curl -fsSL "$url.sha256" -o "$tmp/$asset.sha256"
   tar -xzf "$asset"
 )
 
-install -m 755 "$tmp/$package/moi" "$self_path"
+replacement="$(mktemp "$(dirname "$self_path")/.moi-install.XXXXXXXX")"
+install -m 755 "$tmp/$package/moi" "$replacement"
+mv -fT -- "$replacement" "$self_path"
+replacement=""
+rm -rf -- "$tmp"
+trap - EXIT
 
-MOI_FIRST_INSTALL=1 exec "$self_path" "$@"
+exec "$self_path" "$@"

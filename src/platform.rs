@@ -1,58 +1,64 @@
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub(crate) enum Platform {
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, serde::Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub(crate) enum Distro {
     Debian,
     Arch,
 }
 
-impl Platform {
-    pub(crate) fn name(self) -> &'static str {
-        match self {
-            Platform::Debian => "debian",
-            Platform::Arch => "arch",
-        }
-    }
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, serde::Deserialize)]
+pub(crate) enum Arch {
+    #[serde(rename = "x86_64")]
+    X86_64,
+    #[serde(rename = "aarch64")]
+    Aarch64,
 }
 
-pub(crate) fn detect() -> std::result::Result<Platform, crate::error::MoiError> {
-    let values = read_os_release(std::path::Path::new("/etc/os-release"))?;
-    let mut ids = Vec::new();
-    if let Some(id) = values.get("ID") {
-        ids.push(id.to_lowercase());
+#[derive(Debug, Clone, Copy)]
+pub(crate) struct Platform {
+    pub(crate) distro: Distro,
+    pub(crate) arch: Arch,
+    pub(crate) wsl: bool,
+}
+
+pub(crate) fn detect() -> Result<Platform, crate::error::MoiError> {
+    if std::env::consts::OS != "linux" {
+        return Err(crate::error::MoiError::config("only Linux is supported"));
     }
-    if let Some(id_like) = values.get("ID_LIKE") {
-        ids.extend(id_like.split_whitespace().map(str::to_lowercase));
-    }
-    if ids.iter().any(|item| item == "debian" || item == "ubuntu") {
-        return Ok(Platform::Debian);
-    }
-    if ids.iter().any(|item| item == "arch" || item == "archlinux") {
-        return Ok(Platform::Arch);
+    let os = std::fs::read_to_string("/etc/os-release")
+        .map_err(|e| crate::error::MoiError::io("/etc/os-release", e))?;
+    let arch = match std::env::consts::ARCH {
+        "x86_64" => Arch::X86_64,
+        "aarch64" => Arch::Aarch64,
+        other => {
+            return Err(crate::error::MoiError::config(format!(
+                "unsupported architecture: {other}"
+            )));
+        }
+    };
+    let release = std::fs::read_to_string("/proc/sys/kernel/osrelease")
+        .map_err(|e| crate::error::MoiError::io("/proc/sys/kernel/osrelease", e))?;
+    Ok(Platform {
+        distro: distro(&os)?,
+        arch,
+        wsl: release.to_ascii_lowercase().contains("microsoft"),
+    })
+}
+
+fn distro(text: &str) -> Result<Distro, crate::error::MoiError> {
+    let values: std::collections::BTreeMap<_, _> =
+        text.lines().filter_map(|l| l.split_once('=')).collect();
+    for key in ["ID", "ID_LIKE"] {
+        if let Some(value) = values.get(key) {
+            for id in value.trim_matches(['\'', '"']).split_whitespace() {
+                match id {
+                    "debian" | "ubuntu" => return Ok(Distro::Debian),
+                    "arch" | "archlinux" => return Ok(Distro::Arch),
+                    _ => {}
+                }
+            }
+        }
     }
     Err(crate::error::MoiError::config(
-        "could not detect supported platform from /etc/os-release",
+        "unsupported distro in /etc/os-release",
     ))
-}
-
-fn read_os_release(
-    path: &std::path::Path,
-) -> std::result::Result<
-    std::collections::BTreeMap<String, String>,
-    crate::error::MoiError,
-> {
-    let mut values = std::collections::BTreeMap::new();
-    if !path.is_file() {
-        return Ok(values);
-    }
-    let content = std::fs::read_to_string(path)
-        .map_err(|source| crate::error::MoiError::io(path, source))?;
-    for line in content.lines() {
-        if line.is_empty() || line.starts_with('#') || !line.contains('=') {
-            continue;
-        }
-        let mut parts = line.splitn(2, '=');
-        if let (Some(key), Some(value)) = (parts.next(), parts.next()) {
-            values.insert(key.to_string(), value.trim().trim_matches('"').to_string());
-        }
-    }
-    Ok(values)
 }

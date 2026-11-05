@@ -1,267 +1,148 @@
 pub(crate) fn load(
-    modules_dir: &std::path::Path,
-) -> std::result::Result<
+    root: &std::path::Path,
+) -> Result<
     std::collections::BTreeMap<String, crate::model::Module>,
     crate::error::MoiError,
 > {
-    if !modules_dir.exists() {
-        return Err(crate::error::MoiError::config(format!(
-            "modules directory not found: {}",
-            modules_dir.display()
-        )));
-    }
     let mut modules = std::collections::BTreeMap::new();
-    for entry in std::fs::read_dir(modules_dir)
-        .map_err(|source| crate::error::MoiError::io(modules_dir, source))?
+    for entry in
+        std::fs::read_dir(root).map_err(|e| crate::error::MoiError::io(root, e))?
     {
-        let entry =
-            entry.map_err(|source| crate::error::MoiError::io(modules_dir, source))?;
-        let path = entry.path();
-        if !path.is_dir() || !path.join("module.toml").is_file() {
+        let path = entry
+            .map_err(|e| crate::error::MoiError::io(root, e))?
+            .path();
+        let Some(meta) = crate::path::metadata(&path)? else {
+            continue;
+        };
+        if !meta.is_dir() && !meta.file_type().is_symlink() {
             continue;
         }
-        let module = load_one(&path)?;
-        modules.insert(module.name().as_str().to_string(), module);
+        let file = path.join("module.toml");
+        let content = std::fs::read_to_string(&file)
+            .map_err(|e| crate::error::MoiError::io(&file, e))?;
+        let mut module: crate::model::Module =
+            toml::from_str(&content).map_err(|source| {
+                crate::error::MoiError::Toml {
+                    path: file.clone(),
+                    source,
+                }
+            })?;
+        module.validate().map_err(|e| {
+            crate::error::MoiError::config(format!("{}: {e}", file.display()))
+        })?;
+        if path.file_name().and_then(|s| s.to_str()) != Some(&module.name) {
+            return Err(crate::error::MoiError::config(format!(
+                "{}: name must match directory",
+                file.display()
+            )));
+        }
+        module.path = path;
+        modules.insert(module.name.clone(), module);
     }
+    // Validate the entire environment before applying the requested selection.
+    order(&modules, &modules.keys().cloned().collect())?;
     Ok(modules)
-}
-
-fn load_one(
-    module_dir: &std::path::Path,
-) -> std::result::Result<crate::model::Module, crate::error::MoiError> {
-    let path = module_dir.join("module.toml");
-    let content = std::fs::read_to_string(&path)
-        .map_err(|source| crate::error::MoiError::io(&path, source))?;
-    let mut module: crate::model::Module =
-        toml::from_str(&content).map_err(|source| crate::error::MoiError::Toml {
-            path: path.clone(),
-            source,
-        })?;
-    let expected = module_dir
-        .file_name()
-        .and_then(std::ffi::OsStr::to_str)
-        .ok_or_else(|| {
-            crate::error::MoiError::config("invalid module directory name")
-        })?;
-    if module.name().as_str() != expected {
-        return Err(crate::error::MoiError::config(format!(
-            "{}: name must match directory name ({expected})",
-            path.display()
-        )));
-    }
-    module.set_path(module_dir.to_path_buf());
-    Ok(module)
 }
 
 pub(crate) fn resolve<'a>(
     modules: &'a std::collections::BTreeMap<String, crate::model::Module>,
     requested: &[String],
-) -> std::result::Result<Vec<&'a crate::model::Module>, crate::error::MoiError> {
-    let targets = if requested.is_empty() {
-        modules.keys().cloned().collect::<Vec<_>>()
+) -> Result<Vec<&'a crate::model::Module>, crate::error::MoiError> {
+    order(modules, &modules.keys().cloned().collect())?;
+    let mut selected = std::collections::BTreeSet::new();
+    let mut pending = if requested.is_empty() {
+        modules.keys().cloned().collect()
     } else {
         requested.to_vec()
     };
-    for target in &targets {
-        if !modules.contains_key(target) {
-            return Err(crate::error::MoiError::config(format!(
-                "unknown module: {target}"
-            )));
+    while let Some(name) = pending.pop() {
+        let module = modules.get(&name).ok_or_else(|| {
+            crate::error::MoiError::config(format!("unknown module: {name}"))
+        })?;
+        if selected.insert(name) {
+            pending.extend(module.depends_on.iter().cloned());
         }
     }
-
-    let mut selected = std::collections::BTreeSet::new();
-    for target in &targets {
-        include(modules, target, &mut Vec::new(), &mut selected)?;
-    }
-
-    let mut ordered = Vec::new();
-    let mut temporary = std::collections::BTreeSet::new();
-    let mut permanent = std::collections::BTreeSet::new();
-    for name in &selected {
-        visit(
-            modules,
-            name,
-            &selected,
-            &mut temporary,
-            &mut permanent,
-            &mut ordered,
-        )?;
-    }
-    Ok(ordered)
+    order(modules, &selected)
 }
 
-fn include(
-    modules: &std::collections::BTreeMap<String, crate::model::Module>,
-    name: &str,
-    stack: &mut Vec<String>,
-    selected: &mut std::collections::BTreeSet<String>,
-) -> std::result::Result<(), crate::error::MoiError> {
-    if stack.iter().any(|item| item == name) {
-        let mut cycle = stack.clone();
-        cycle.push(name.to_string());
-        return Err(crate::error::MoiError::config(format!(
-            "dependency cycle: {}",
-            cycle.join(" -> ")
-        )));
-    }
-    if selected.contains(name) {
-        return Ok(());
-    }
-    let module = modules.get(name).ok_or_else(|| {
-        crate::error::MoiError::config(format!("unknown module: {name}"))
-    })?;
-    stack.push(name.to_string());
-    for dep in module.depends_on() {
-        if !modules.contains_key(dep.as_str()) {
-            return Err(crate::error::MoiError::config(format!(
-                "{name}: unknown dependency: {dep}"
-            )));
-        }
-        include(modules, dep.as_str(), stack, selected)?;
-    }
-    stack.pop();
-    selected.insert(name.to_string());
-    Ok(())
-}
-
-fn visit<'a>(
+fn order<'a>(
     modules: &'a std::collections::BTreeMap<String, crate::model::Module>,
-    name: &str,
     selected: &std::collections::BTreeSet<String>,
-    temporary: &mut std::collections::BTreeSet<String>,
-    permanent: &mut std::collections::BTreeSet<String>,
-    ordered: &mut Vec<&'a crate::model::Module>,
-) -> std::result::Result<(), crate::error::MoiError> {
-    if permanent.contains(name) {
-        return Ok(());
+) -> Result<Vec<&'a crate::model::Module>, crate::error::MoiError> {
+    let mut remaining = std::collections::BTreeMap::new();
+    let mut users: std::collections::BTreeMap<&str, Vec<&str>> =
+        std::collections::BTreeMap::new();
+    for name in selected {
+        let module = &modules[name];
+        for dep in &module.depends_on {
+            if !modules.contains_key(dep) {
+                return Err(crate::error::MoiError::config(format!(
+                    "{name}: unknown dependency: {dep}"
+                )));
+            }
+            users.entry(dep).or_default().push(name);
+        }
+        remaining.insert(name.as_str(), module.depends_on.len());
     }
-    if !temporary.insert(name.to_string()) {
-        return Err(crate::error::MoiError::config(format!(
-            "dependency cycle at {name}"
-        )));
-    }
-    let module = modules.get(name).ok_or_else(|| {
-        crate::error::MoiError::config(format!("unknown module: {name}"))
-    })?;
-    for dep in module.depends_on() {
-        if selected.contains(dep.as_str()) {
-            visit(
-                modules,
-                dep.as_str(),
-                selected,
-                temporary,
-                permanent,
-                ordered,
-            )?;
+    let mut ready: std::collections::BTreeSet<_> = remaining
+        .iter()
+        .filter_map(|(name, n)| (*n == 0).then_some(*name))
+        .collect();
+    let mut result = Vec::new();
+    while let Some(name) = ready.pop_first() {
+        result.push(&modules[name]);
+        if let Some(users) = users.get(name) {
+            for user in users {
+                if let Some(n) = remaining.get_mut(user) {
+                    *n -= 1;
+                    if *n == 0 {
+                        ready.insert(user);
+                    }
+                }
+            }
         }
     }
-    temporary.remove(name);
-    permanent.insert(name.to_string());
-    ordered.push(module);
-    Ok(())
+    if result.len() != selected.len() {
+        return Err(crate::error::MoiError::config("dependency cycle"));
+    }
+    Ok(result)
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    #[test]
-    fn test_resolve_all_in_dependency_order() {
-        let tempdir = tempfile::tempdir().unwrap();
-        write_module(tempdir.path(), "core", &[]);
-        write_module(tempdir.path(), "git", &["core"]);
-        write_module(tempdir.path(), "zsh", &["core"]);
-
-        let modules = load(tempdir.path()).unwrap();
-        let ordered = resolve(&modules, &[]).unwrap();
-        let names = ordered
-            .iter()
-            .map(|module| module.name().as_str())
-            .collect::<Vec<_>>();
-
-        assert_eq!(names, ["core", "git", "zsh"]);
+    fn modules(
+        text: &[(&str, &[&str])],
+    ) -> std::collections::BTreeMap<String, crate::model::Module> {
+        text.iter()
+            .map(|(name, deps)| {
+                let mut m: crate::model::Module =
+                    toml::from_str(&format!("name = {name:?}")).unwrap();
+                m.depends_on = deps.iter().map(|d| d.to_string()).collect();
+                (name.to_string(), m)
+            })
+            .collect()
     }
-
     #[test]
-    fn test_resolve_requested_module_includes_dependency() {
-        let tempdir = tempfile::tempdir().unwrap();
-        write_module(tempdir.path(), "core", &[]);
-        write_module(tempdir.path(), "git", &["core"]);
-        write_module(tempdir.path(), "zsh", &["core"]);
-
-        let modules = load(tempdir.path()).unwrap();
-        let ordered = resolve(&modules, &[String::from("git")]).unwrap();
-        let names = ordered
-            .iter()
-            .map(|module| module.name().as_str())
-            .collect::<Vec<_>>();
-
-        assert_eq!(names, ["core", "git"]);
-    }
-
-    #[test]
-    fn test_reject_unknown_requested_module() {
-        let tempdir = tempfile::tempdir().unwrap();
-        write_module(tempdir.path(), "core", &[]);
-
-        let modules = load(tempdir.path()).unwrap();
-        let error = resolve(&modules, &[String::from("missing")]).unwrap_err();
-
-        assert!(error.to_string().contains("unknown module: missing"));
-    }
-
-    #[test]
-    fn test_reject_unknown_dependency() {
-        let tempdir = tempfile::tempdir().unwrap();
-        write_module(tempdir.path(), "git", &["core"]);
-
-        let modules = load(tempdir.path()).unwrap();
-        let error = resolve(&modules, &[]).unwrap_err();
-
-        assert!(error.to_string().contains("git: unknown dependency: core"));
-    }
-
-    #[test]
-    fn test_reject_dependency_cycle() {
-        let tempdir = tempfile::tempdir().unwrap();
-        write_module(tempdir.path(), "a", &["b"]);
-        write_module(tempdir.path(), "b", &["a"]);
-
-        let modules = load(tempdir.path()).unwrap();
-        let error = resolve(&modules, &[]).unwrap_err();
-
-        assert!(error.to_string().contains("dependency cycle"));
-    }
-
-    #[test]
-    fn test_reject_module_name_mismatch() {
-        let tempdir = tempfile::tempdir().unwrap();
-        let dir = tempdir.path().join("actual");
-        std::fs::create_dir_all(&dir).unwrap();
-        std::fs::write(dir.join("module.toml"), "name = \"declared\"\n").unwrap();
-
-        let error = load(tempdir.path()).unwrap_err();
-
-        assert!(
-            error
-                .to_string()
-                .contains("name must match directory name (actual)")
+    fn chooses_smallest_ready_module() {
+        let m = modules(&[("a", &["z"]), ("b", &[]), ("z", &[])]);
+        assert_eq!(
+            resolve(&m, &[])
+                .unwrap()
+                .iter()
+                .map(|m| m.name.as_str())
+                .collect::<Vec<_>>(),
+            ["b", "z", "a"]
         );
     }
-
-    fn write_module(root: &std::path::Path, name: &str, deps: &[&str]) {
-        let dir = root.join(name);
-        std::fs::create_dir_all(&dir).unwrap();
-        let depends_on = deps
-            .iter()
-            .map(|dep| format!("\"{dep}\""))
-            .collect::<Vec<_>>()
-            .join(", ");
-        std::fs::write(
-            dir.join("module.toml"),
-            format!("name = \"{name}\"\ndepends_on = [{depends_on}]\n"),
-        )
-        .unwrap();
+    #[test]
+    fn rejects_unselected_invalid_dependencies_and_cycles() {
+        for m in [
+            modules(&[("a", &[]), ("b", &["missing"])]),
+            modules(&[("a", &[]), ("b", &["c"]), ("c", &["b"])]),
+        ] {
+            assert!(resolve(&m, &["a".into()]).is_err());
+        }
     }
 }

@@ -6,7 +6,6 @@ license = "MIT OR Apache-2.0"
 
 [dependencies]
 clap = { version = "4.6.6", features = ["derive", "env"] }
-regex = "1.13.1"
 semver = "1.0.27"
 serde = { version = "1.0.229", features = ["derive"] }
 tempfile = "3.27.0"
@@ -15,3 +14,11 @@ toml = "1.1.4"
 tracing = "0.1.44"
 tracing-appender = "0.2.5"
 tracing-subscriber = { version = "0.3.23", features = ["env-filter", "json"] }
+
+flate2 = "1"
+sha2 = "0.10"
+serde_json = "1"
+tar = "0.4"
+xz2 = { version = "0.1", features = ["static"] }
+zip = { version = "2.4", default-features = false, features = ["deflate"] }
+url = "2"

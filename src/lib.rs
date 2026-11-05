@@ -1,10 +1,10 @@
 pub mod app;
 pub mod cli;
-pub mod config;
+mod config;
 pub mod error;
-pub mod exec;
-pub mod model;
-pub mod platform;
+mod exec;
+mod model;
+mod platform;
 pub mod util;
 
 mod macros;

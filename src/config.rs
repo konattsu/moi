@@ -106,6 +106,7 @@ impl Settings {
             Some(defaults::SOURCE),
             &config_path,
         )?)?;
+        crate::path::name(&environment).map_err(crate::error::MoiError::config)?;
         Ok(Self {
             environment,
             folder_name,
@@ -121,27 +122,6 @@ impl Settings {
     }
     pub(crate) fn source(&self) -> &str {
         &self.source
-    }
-
-    pub(crate) fn write_if_missing(
-        &self,
-    ) -> std::result::Result<(), crate::error::MoiError> {
-        let path = config_path()?;
-        if path.exists() {
-            return Ok(());
-        }
-        if let Some(parent) = path.parent() {
-            std::fs::create_dir_all(parent)
-                .map_err(|source| crate::error::MoiError::io(parent, source))?;
-        }
-        let content = format!(
-            "default_environment = \"{}\"\ndefault_folder_name = \"{}\"\ndefault_source = \"{}\"\n",
-            escape_basic_string(&self.environment),
-            escape_basic_string(&self.folder_name),
-            escape_basic_string(&self.source)
-        );
-        std::fs::write(&path, content)
-            .map_err(|source| crate::error::MoiError::io(path, source))
     }
 }
 
@@ -205,6 +185,7 @@ impl InstallCommandSettings {
             Some(defaults::INSTALL_SCRIPT),
             &config_path,
         )?)?;
+        crate::path::name(&environment).map_err(crate::error::MoiError::config)?;
         Ok(Self {
             environment,
             folder_name,
@@ -253,7 +234,7 @@ pub(crate) fn config_path()
 fn read_config_file(
     path: &std::path::Path,
 ) -> std::result::Result<ConfigFile, crate::error::MoiError> {
-    if !path.exists() {
+    if crate::path::metadata(path)?.is_none() {
         return Ok(ConfigFile::default());
     }
     let content = std::fs::read_to_string(path)
@@ -306,7 +287,6 @@ fn resolve_setting(
 ) -> std::result::Result<String, crate::error::MoiError> {
     let value = sources
         .cli
-        .filter(|value| !value.is_empty())
         .map(str::to_string)
         .or_else(|| sources.env.map(str::to_string))
         .or_else(|| {
@@ -325,54 +305,58 @@ fn resolve_setting(
     })
 }
 
-fn validate_source(value: &str) -> std::result::Result<String, crate::error::MoiError> {
-    if value.starts_with("https://") || value.starts_with("file:///") {
-        return Ok(value.to_string());
+fn validate_source(value: &str) -> Result<String, crate::error::MoiError> {
+    if value.starts_with("https://") {
+        crate::path::https(value).map_err(crate::error::MoiError::config)?;
+    } else {
+        let parsed = url::Url::parse(value)
+            .map_err(|e| crate::error::MoiError::config(e.to_string()))?;
+        if parsed.scheme() != "file"
+            || !value.starts_with("file:///")
+            || parsed.to_file_path().is_err()
+            || parsed.query().is_some()
+            || parsed.fragment().is_some()
+        {
+            return Err(crate::error::MoiError::config(
+                "source must be HTTPS or file:/// absolute checkout",
+            ));
+        }
     }
-    Err(crate::error::MoiError::config(
-        "source must start with \"https://\" or \"file:///\"",
-    ))
+    Ok(value.into())
 }
 
-fn validate_install_source(
-    value: &str,
-) -> std::result::Result<String, crate::error::MoiError> {
-    if value.starts_with("https://") || value.starts_with("file://") {
-        return Ok(value.to_string());
+fn validate_install_source(value: &str) -> Result<String, crate::error::MoiError> {
+    crate::path::text(value).map_err(crate::error::MoiError::config)?;
+    if value.starts_with("https://") {
+        crate::path::https(value).map_err(crate::error::MoiError::config)?;
+        return Ok(value.into());
     }
-    let path = std::path::Path::new(value);
-    if path.as_os_str().is_empty() {
-        return Err(crate::error::MoiError::config(
-            "install_source must be a URL or local path",
-        ));
+    if value.starts_with("file:") {
+        return validate_source(value);
     }
-    Ok(value.to_string())
+    let path = if value.starts_with('~') {
+        crate::path::expand(value)?
+    } else {
+        let path = std::path::PathBuf::from(value);
+        if path.is_absolute() {
+            crate::path::destination(value).map_err(crate::error::MoiError::config)?;
+            path
+        } else {
+            crate::path::relative(value).map_err(crate::error::MoiError::config)?;
+            std::env::current_dir()
+                .map_err(|e| crate::error::MoiError::io("cwd", e))?
+                .join(path)
+        }
+    };
+    Ok(path.to_string_lossy().into_owned())
 }
 
-fn validate_install_script(
-    value: &str,
-) -> std::result::Result<String, crate::error::MoiError> {
-    let path = std::path::Path::new(value);
-    if path.is_absolute() || path.components().any(|part| part.as_os_str() == "..") {
-        return Err(crate::error::MoiError::config(
-            "install_script must be relative and must not contain ..",
-        ));
-    }
-    Ok(value.trim_matches('/').to_string())
+fn validate_install_script(value: &str) -> Result<String, crate::error::MoiError> {
+    crate::path::relative(value).map_err(crate::error::MoiError::config)?;
+    Ok(value.into())
 }
 
-fn validate_folder_name(
-    value: &str,
-) -> std::result::Result<String, crate::error::MoiError> {
-    let path = std::path::Path::new(value);
-    if path.is_absolute() || path.components().any(|part| part.as_os_str() == "..") {
-        return Err(crate::error::MoiError::config(
-            "folder_name must be repository-relative and must not contain ..",
-        ));
-    }
-    Ok(value.trim_matches('/').to_string())
-}
-
-fn escape_basic_string(value: &str) -> String {
-    value.replace('\\', "\\\\").replace('"', "\\\"")
+fn validate_folder_name(value: &str) -> Result<String, crate::error::MoiError> {
+    crate::path::relative(value).map_err(crate::error::MoiError::config)?;
+    Ok(value.into())
 }

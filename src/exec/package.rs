@@ -1,111 +1,105 @@
 pub(crate) fn install(
     packages: &[String],
-    platform: crate::platform::Platform,
-    repo_root: &std::path::Path,
+    distro: crate::platform::Distro,
     env: &crate::exec::environment::ExecutionEnv,
     upgrade: bool,
     reporter: &mut crate::reporter::Reporter,
-) -> std::result::Result<(), crate::error::MoiError> {
-    if packages.is_empty() {
+) -> Result<(), crate::error::MoiError> {
+    let mut missing = Vec::new();
+    for package in packages {
+        let mut query = match distro {
+            crate::platform::Distro::Debian => {
+                let mut c = std::process::Command::new("dpkg-query");
+                c.args(["-W", "-f=${Status}", "--", package]);
+                c
+            }
+            crate::platform::Distro::Arch => {
+                let mut c = std::process::Command::new("pacman");
+                c.args(["-Q", "--", package]);
+                c
+            }
+        };
+        env.apply_to(&mut query);
+        let output = query
+            .output()
+            .map_err(|e| crate::error::MoiError::io(query.get_program(), e))?;
+        match output.status.code() {
+            Some(0) => {
+                if distro == crate::platform::Distro::Debian
+                    && output.stdout != b"install ok installed"
+                {
+                    missing.push(package.clone());
+                }
+            }
+            Some(1) => missing.push(package.clone()),
+            _ => {
+                return Err(crate::error::MoiError::config(format!(
+                    "package query failed: {}: {}",
+                    output.status,
+                    String::from_utf8_lossy(&output.stderr)
+                )));
+            }
+        }
+    }
+    if missing.is_empty() && !upgrade {
         return Ok(());
     }
-    let commands = package_commands(packages, platform, upgrade);
-    let total = commands.len();
-    for (index, command) in commands.into_iter().enumerate() {
-        reporter.start_step(index + 1, total, &command.display);
-        if let Err(error) =
-            crate::exec::shell::run_bash(&command.run, repo_root, env, reporter)
-        {
-            reporter.fail_step(&error);
-            return Err(error);
+    fn run(
+        program: &str,
+        args: &[&str],
+        packages: &[String],
+        env: &crate::exec::environment::ExecutionEnv,
+        reporter: &mut crate::reporter::Reporter,
+    ) -> Result<(), crate::error::MoiError> {
+        // Linux geteuid is queried without changing the invoking user's environment.
+        let root = std::fs::read_to_string("/proc/self/status")
+            .map_err(|e| crate::error::MoiError::io("/proc/self/status", e))?
+            .lines()
+            .find(|l| l.starts_with("Uid:"))
+            .and_then(|l| l.split_whitespace().nth(2))
+            .is_some_and(|uid| uid == "0");
+        let mut command = if root {
+            std::process::Command::new(program)
+        } else {
+            let mut c = std::process::Command::new("sudo");
+            c.arg(program);
+            c
+        };
+        command.args(args);
+        if !packages.is_empty() {
+            command.arg("--").args(packages);
         }
-        reporter.finish_step();
+        env.apply_to(&mut command);
+        reporter.log(format!("packages: {program} {}", args.join(" ")));
+        crate::exec::shell::run_command(&mut command, reporter)
+    }
+    match distro {
+        crate::platform::Distro::Debian => {
+            run("apt-get", &["update"], &[], env, reporter)?;
+            if upgrade {
+                run(
+                    "apt-get",
+                    &["upgrade", "--with-new-pkgs", "-y"],
+                    &[],
+                    env,
+                    reporter,
+                )?;
+            }
+            if !missing.is_empty() {
+                run("apt-get", &["install", "-y"], &missing, env, reporter)?;
+            }
+        }
+        crate::platform::Distro::Arch => run(
+            "pacman",
+            &[
+                if upgrade { "-Syu" } else { "-S" },
+                "--needed",
+                "--noconfirm",
+            ],
+            &missing,
+            env,
+            reporter,
+        )?,
     }
     Ok(())
-}
-
-pub(crate) fn descriptions(
-    packages: &[String],
-    platform: crate::platform::Platform,
-    upgrade: bool,
-) -> Vec<String> {
-    package_commands(packages, platform, upgrade)
-        .into_iter()
-        .map(|command| command.display)
-        .collect()
-}
-
-fn package_commands(
-    packages: &[String],
-    platform: crate::platform::Platform,
-    upgrade: bool,
-) -> Vec<PackageCommand> {
-    let quoted = packages
-        .iter()
-        .map(|package| crate::exec::path::shell_quote(package))
-        .collect::<Vec<_>>()
-        .join(" ");
-    match platform {
-        crate::platform::Platform::Debian => {
-            let mut commands =
-                vec![PackageCommand::new("sudo apt-get update".to_string())];
-            if upgrade {
-                commands.push(PackageCommand::new(
-                    "sudo apt-get upgrade --with-new-pkgs -y".to_string(),
-                ));
-            }
-            commands.push(PackageCommand::with_display(
-                format!("sudo apt-get install -y {quoted}"),
-                format!("apt-get install ({} packages)", packages.len()),
-            ));
-            commands
-        }
-        crate::platform::Platform::Arch => {
-            vec![pacman_install_command(&quoted, upgrade)]
-        }
-    }
-}
-
-struct PackageCommand {
-    run: String,
-    display: String,
-}
-
-impl PackageCommand {
-    fn new(run: String) -> Self {
-        let display = run.strip_prefix("sudo ").unwrap_or(&run).to_string();
-        Self { run, display }
-    }
-
-    fn with_display(run: String, display: String) -> Self {
-        Self { run, display }
-    }
-}
-
-fn pacman_install_command(packages: &str, upgrade: bool) -> PackageCommand {
-    let flags = if upgrade { "-Syu" } else { "-S" };
-    PackageCommand::new(format!(
-        "sudo pacman {flags} --needed --noconfirm {packages}"
-    ))
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_pacman_install_command_without_upgrade() {
-        let command = pacman_install_command("'git'", false);
-
-        assert_eq!(command.run, "sudo pacman -S --needed --noconfirm 'git'");
-        assert_eq!(command.display, "pacman -S --needed --noconfirm 'git'");
-    }
-
-    #[test]
-    fn test_pacman_install_command_with_upgrade() {
-        let command = pacman_install_command("'git'", true);
-
-        assert_eq!(command.run, "sudo pacman -Syu --needed --noconfirm 'git'");
-        assert_eq!(command.display, "pacman -Syu --needed --noconfirm 'git'");
-    }
 }

@@ -2,6 +2,11 @@
 pub enum MoiError {
     #[error("{0}")]
     Config(String),
+    #[error("{context}: {source}")]
+    Context {
+        context: String,
+        source: Box<MoiError>,
+    },
     #[error("{path}: {source}")]
     Io {
         path: std::path::PathBuf,
@@ -19,6 +24,20 @@ pub enum MoiError {
 }
 
 impl MoiError {
+    pub(crate) fn context(self, context: impl Into<String>) -> Self {
+        Self::Context {
+            context: context.into(),
+            source: Box::new(self),
+        }
+    }
+    pub fn exit_code(&self) -> i32 {
+        match self {
+            Self::CommandExit(code) => *code,
+            Self::Context { source, .. } => source.exit_code(),
+            _ => 1,
+        }
+    }
+
     pub(crate) fn config(message: impl Into<String>) -> Self {
         Self::Config(message.into())
     }
