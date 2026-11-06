@@ -77,17 +77,36 @@ pub(super) fn path_for(
 }
 fn hash(bytes: &[u8]) -> String {
     use sha2::Digest;
-    format!("{:x}", sha2::Sha256::digest(bytes))
+    hex(&sha2::Sha256::digest(bytes))
 }
 pub(super) fn digest(path: &std::path::Path) -> Result<String, crate::error::MoiError> {
     use sha2::Digest;
+    use std::io::Read;
     let mut file =
         std::fs::File::open(path).map_err(|e| crate::error::MoiError::io(path, e))?;
     let mut digest = sha2::Sha256::new();
-    std::io::copy(&mut file, &mut digest)
-        .map_err(|e| crate::error::MoiError::io(path, e))?;
-    Ok(format!("{:x}", digest.finalize()))
+    let mut buffer = [0; 8192];
+    loop {
+        let count = file
+            .read(&mut buffer)
+            .map_err(|e| crate::error::MoiError::io(path, e))?;
+        if count == 0 {
+            break;
+        }
+        digest.update(&buffer[..count]);
+    }
+    Ok(hex(&digest.finalize()))
 }
+
+fn hex(bytes: &[u8]) -> String {
+    use std::fmt::Write;
+    let mut result = String::with_capacity(bytes.len() * 2);
+    for byte in bytes {
+        write!(result, "{byte:02x}").expect("writing to a String cannot fail");
+    }
+    result
+}
+
 fn load(
     target: &std::path::Path,
     dst: &std::path::Path,
@@ -522,4 +541,30 @@ pub(super) fn save(
     file.persist(&path)
         .map_err(|e| crate::error::MoiError::io(&path, e.error))?;
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn sha256_matches_known_vectors_for_memory_and_streamed_files() {
+        let file = tempfile::NamedTempFile::new().unwrap();
+        for (bytes, expected) in [
+            (
+                Vec::new(),
+                "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            ),
+            (
+                b"abc".to_vec(),
+                "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad",
+            ),
+            (
+                vec![b'a'; 1_000_000],
+                "cdc76e5c9914fb9281a1c7e284d73e67f1809a48a497200e046d39ccc7112cd0",
+            ),
+        ] {
+            std::fs::write(file.path(), &bytes).unwrap();
+            assert_eq!(super::hash(&bytes), expected);
+            assert_eq!(super::digest(file.path()).unwrap(), expected);
+        }
+    }
 }
