@@ -5,6 +5,11 @@ pub(crate) fn install(
     upgrade: bool,
     reporter: &mut crate::reporter::Reporter,
 ) -> Result<(), crate::error::MoiError> {
+    let total = match distro {
+        crate::platform::Distro::Debian => 3 + usize::from(upgrade),
+        crate::platform::Distro::Arch => 2,
+    };
+    reporter.start_step(1, total, "query installed packages");
     let mut missing = Vec::new();
     for package in packages {
         let mut query = match distro {
@@ -41,7 +46,14 @@ pub(crate) fn install(
             }
         }
     }
+    reporter.finish_step("done");
     if missing.is_empty() && !upgrade {
+        if distro == crate::platform::Distro::Debian {
+            reporter.start_step(2, total, "fetch package index");
+            reporter.finish_step("skipped");
+        }
+        reporter.start_step(total, total, "install packages");
+        reporter.finish_step("unchanged");
         return Ok(());
     }
     fn run(
@@ -75,8 +87,11 @@ pub(crate) fn install(
     }
     match distro {
         crate::platform::Distro::Debian => {
+            reporter.start_step(2, total, "fetch package index");
             run("apt-get", &["update"], &[], env, reporter)?;
+            reporter.finish_step("done");
             if upgrade {
+                reporter.start_step(3, total, "upgrade packages");
                 run(
                     "apt-get",
                     &["upgrade", "--with-new-pkgs", "-y"],
@@ -84,22 +99,39 @@ pub(crate) fn install(
                     env,
                     reporter,
                 )?;
+                reporter.finish_step("done");
             }
+            reporter.start_step(total, total, "install packages");
             if !missing.is_empty() {
                 run("apt-get", &["install", "-y"], &missing, env, reporter)?;
+                reporter.finish_step("done");
+            } else {
+                reporter.finish_step("unchanged");
             }
         }
-        crate::platform::Distro::Arch => run(
-            "pacman",
-            &[
-                if upgrade { "-Syu" } else { "-S" },
-                "--needed",
-                "--noconfirm",
-            ],
-            &missing,
-            env,
-            reporter,
-        )?,
+        crate::platform::Distro::Arch => {
+            reporter.start_step(
+                2,
+                total,
+                if upgrade {
+                    "refresh and upgrade packages"
+                } else {
+                    "install packages"
+                },
+            );
+            run(
+                "pacman",
+                &[
+                    if upgrade { "-Syu" } else { "-S" },
+                    "--needed",
+                    "--noconfirm",
+                ],
+                &missing,
+                env,
+                reporter,
+            )?;
+            reporter.finish_step("done");
+        }
     }
     Ok(())
 }

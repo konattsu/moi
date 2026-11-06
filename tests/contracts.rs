@@ -54,6 +54,77 @@ impl Fixture {
 }
 
 #[test]
+fn apply_reports_progress_and_keeps_quiet_output_silent() {
+    let f = Fixture::new();
+    f.module(
+        "a",
+        "[[operations]]\nkind = 'directory'\npath = '~/directory'\n",
+    );
+    let output = f.success(&["apply"]);
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    assert!(stderr.contains("=> [1/3] repository clone"));
+    assert!(stderr.contains("=> [2/3] system packages"));
+    assert!(stderr.contains("=> [3/3] apply modules"));
+    assert!(stderr.contains("[1/2] open local repository"));
+    assert!(stderr.contains("[1/1] a: done ("));
+    assert!(
+        stderr
+            .lines()
+            .any(|line| line.starts_with("a operations[1] directory ")
+                && line.ends_with(": changed"))
+    );
+    assert!(!stderr.contains('\x1b'));
+    let output = f.success(&["--quiet", "apply"]);
+    assert!(output.stderr.is_empty());
+    assert!(output.stdout.is_empty());
+}
+
+#[test]
+fn module_progress_has_one_step_per_module_including_empty_modules() {
+    let f = Fixture::new();
+    f.module("a", "");
+    f.module(
+        "b",
+        "[env]\npath_export = 'printf \"%s\\0\" \"$PATH\"'\n\
+         [[operations]]\nkind = 'directory'\npath = '~/first'\n\
+         [[operations]]\nkind = 'directory'\npath = '~/second'\n",
+    );
+    let output = f.success(&["apply"]);
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    let modules = stderr.split("=> [3/3] apply modules\n").nth(1).unwrap();
+    let starts: Vec<_> = modules
+        .lines()
+        .filter(|line| line.starts_with("  ==> ") && !line.contains(": done ("))
+        .collect();
+    assert_eq!(starts, ["  ==> [1/2] a", "  ==> [2/2] b"]);
+    for index in 1..=2 {
+        assert!(modules.lines().any(|line| {
+            line.starts_with(&format!("b operations[{index}] directory "))
+                && line.ends_with(": changed")
+        }));
+    }
+    assert!(modules.contains("b env.path_export: done"));
+}
+
+#[test]
+fn apply_reports_failed_step_and_preserves_child_output() {
+    let f = Fixture::new();
+    f.module(
+        "a",
+        "[[operations]]\nkind = 'shell'\nrun = 'echo failure-details >&2; exit 37'\n",
+    );
+    let output = f.run(&["apply"]);
+    assert_eq!(output.status.code(), Some(37));
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    assert!(stderr.contains(": failed ("));
+    assert!(stderr.contains("failure-details"));
+    let output = f.run(&["--quiet", "apply"]);
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    assert!(stderr.contains("failure-details"));
+    assert!(!stderr.contains("==>"));
+}
+
+#[test]
 fn plan_never_executes_scripts_or_writes_configuration() {
     let f = Fixture::new();
     f.module(

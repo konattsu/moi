@@ -40,7 +40,23 @@ fn run_environment(
             folder_name: settings.folder_name.as_deref(),
             source: settings.source.as_deref(),
         })?;
+    if apply {
+        reporter.start_stage(1, 3, "repository clone");
+        reporter.start_step(
+            1,
+            2,
+            if settings.source().starts_with("file:") {
+                "open local repository"
+            } else {
+                "git clone"
+            },
+        );
+    }
     let repo = Repository::open(settings.source(), reporter)?;
+    if apply {
+        reporter.finish_step("done");
+        reporter.start_step(2, 2, "validate modules");
+    }
     let root = repo
         .path
         .join(settings.folder_name())
@@ -92,8 +108,10 @@ fn run_environment(
         .into_iter()
         .collect();
     if apply {
+        reporter.finish_step("done");
+        reporter.finish_stage("done");
+        reporter.start_stage(2, 3, "system packages");
         let mut env = crate::exec::environment::ExecutionEnv::new();
-        reporter.begin();
         crate::exec::package::install(
             &packages,
             platform.distro,
@@ -102,14 +120,17 @@ fn run_environment(
             reporter,
         )
         .map_err(|e| e.context("system packages"))?;
+        reporter.finish_stage("done");
+        reporter.start_stage(3, 3, "apply modules");
         let mut counts = [0usize; 4];
-        for module in &ordered {
+        for (index, module) in ordered.iter().enumerate() {
+            reporter.start_step(index + 1, ordered.len(), &module.name);
             env.prepend(&module.env.path_prepend)
                 .map_err(|e| e.context(format!("{} env.path_prepend", module.name)))?;
             for operation in prepared.iter().filter(|o| std::ptr::eq(o.module, *module))
             {
-                reporter.begin();
                 let label = operation.label();
+                reporter.log(format!("{label}: applying"));
                 let outcome = operation
                     .apply(&env, reporter)
                     .map_err(|e| e.context(format!("{label}: failed")))?;
@@ -122,12 +143,15 @@ fn run_environment(
                 }] += 1;
             }
             if let Some(export) = &module.env.path_export {
-                reporter.begin();
+                reporter.log(format!("{} env.path_export: applying", module.name));
                 env.export(export, &module.path, reporter).map_err(|e| {
                     e.context(format!("{} env.path_export", module.name))
                 })?;
+                reporter.log(format!("{} env.path_export: done", module.name));
             }
+            reporter.finish_step("done");
         }
+        reporter.finish_stage("done");
         reporter.log(format!(
             "{}: changed={} unchanged={} not-applicable={} executed={}",
             settings.environment(),
