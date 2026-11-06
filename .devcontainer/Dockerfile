@@ -1,6 +1,6 @@
 FROM mcr.microsoft.com/devcontainers/base:ubuntu
 
-ARG JUST_VERSION=1.58.0
+ARG JUST_VERSION=1.59.0
 
 RUN set -eux; \
     case "$(dpkg --print-architecture)" in \
