@@ -1,6 +1,8 @@
 # desktop environment
 
-Arch Linux desktop 用。host の共有 module に Zen と UDEV Gothic を加える。[共通の定義・移行手順](../README.md) に従い、環境の検出結果を when で評価する。
+GUIのバー・検索・ウィンドウ一覧・scratchpad・日本語入力・配色は [desktop-shell](modules/desktop-shell/README.md) で管理する。設定の実装と、実機へのapplyは別に行う。
+
+Arch Linux desktop 用。host の共有 module に desktop-shell、Zen、UDEV Gothic を加える。[共通の定義・移行手順](../README.md) に従い、環境の検出結果を when で評価する。
 
 ```sh
 moi -e desktop --source "file://$PWD" plan udev-gothic zen

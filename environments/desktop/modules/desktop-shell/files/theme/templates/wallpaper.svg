@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="2560" height="1600" viewBox="0 0 2560 1600">
+  <rect width="2560" height="1600" fill="{{background}}"/>
+  <path d="M1420 1600 2560 460V1600Z" fill="{{surface}}"/>
+  <path d="M1810 1600 2560 850" fill="none" stroke="{{border}}" stroke-width="1"/>
+</svg>

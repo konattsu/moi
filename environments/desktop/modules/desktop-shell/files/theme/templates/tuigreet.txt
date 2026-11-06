@@ -1,0 +1,2 @@
+Optional theme arguments for the existing greetd / tuigreet command. /etc is not edited automatically:
+--theme 'border={{accent}};text={{foreground}};prompt={{accent}};time={{foreground}};action={{success}};button={{accent}};container={{background}};input={{foreground}}'

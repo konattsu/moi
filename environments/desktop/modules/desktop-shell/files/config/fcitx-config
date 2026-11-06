@@ -1,0 +1,14 @@
+[Hotkey]
+EnumerateWithTriggerKeys=False
+AltTriggerKeys=
+EnumerateForwardKeys=
+EnumerateBackwardKeys=
+EnumerateSkipFirst=False
+
+[Hotkey/TriggerKeys]
+0=Menu
+
+[Behavior]
+ActiveByDefault=False
+ShareInputState=All
+PreeditEnabledByDefault=True

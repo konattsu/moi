@@ -1,0 +1,9 @@
+{
+  "search_url": "https://www.google.com/search?q={query}",
+  "bar_timeout_ms": 2000,
+  "notification_timeout_ms": 6000,
+  "keyboard_layout": "jp",
+  "reduced_motion": false,
+  "scratchpad": {"width": 0.8, "height": 0.8, "top": 24, "opacity": 0.88},
+  "wallpaper": "generated/wallpaper.svg"
+}

@@ -1,0 +1,393 @@
+#:schema ../../../../schemas/module.schema.json
+name = "desktop-shell"
+depends_on = ["udev-gothic"]
+note = ["Waybar/swaync/fcitx5/hypridleの重複起動を外す。適用時は実行中のUIサービスだけを再起動する。詳細はdesktop-shell/README.md。"]
+
+[packages]
+pacman = [
+    "hyprland", "uwsm", "kitty", "waybar", "gtk3", "gtk-layer-shell", "python", "python-gobject",
+    "python-cairo", "wl-clipboard", "cliphist", "wireplumber", "brightnessctl",
+    "networkmanager", "blueman", "pavucontrol", "xdg-utils", "fcitx5", "fcitx5-mozc",
+    "fcitx5-gtk", "fcitx5-qt", "hyprlock", "hypridle", "hyprpolkitagent", "swaybg", "librsvg", "grim", "ttf-ibm-plex"
+]
+
+[[operations]]
+kind = "file"
+when = { distro = ["arch"] }
+src = "files/backend.py"
+dst = "~/.config/moi-desktop/backend.py"
+
+[[operations]]
+kind = "file"
+when = { distro = ["arch"] }
+src = "files/desktop.py"
+dst = "~/.config/moi-desktop/desktop.py"
+
+[[operations]]
+kind = "file"
+when = { distro = ["arch"] }
+src = "files/render_theme.py"
+dst = "~/.config/moi-desktop/render_theme.py"
+
+[[operations]]
+kind = "file"
+when = { distro = ["arch"] }
+src = "files/ui/__init__.py"
+dst = "~/.config/moi-desktop/ui/__init__.py"
+
+[[operations]]
+kind = "file"
+when = { distro = ["arch"] }
+src = "files/ui/app.py"
+dst = "~/.config/moi-desktop/ui/app.py"
+
+[[operations]]
+kind = "file"
+when = { distro = ["arch"] }
+src = "files/ui/controls.py"
+dst = "~/.config/moi-desktop/ui/controls.py"
+
+[[operations]]
+kind = "file"
+when = { distro = ["arch"] }
+src = "files/ui/notifications.py"
+dst = "~/.config/moi-desktop/ui/notifications.py"
+
+[[operations]]
+kind = "file"
+when = { distro = ["arch"] }
+src = "files/ui/search.py"
+dst = "~/.config/moi-desktop/ui/search.py"
+
+[[operations]]
+kind = "file"
+when = { distro = ["arch"] }
+src = "files/ui/widgets.py"
+dst = "~/.config/moi-desktop/ui/widgets.py"
+
+[[operations]]
+kind = "file"
+when = { distro = ["arch"] }
+src = "files/ui/windows.py"
+dst = "~/.config/moi-desktop/ui/windows.py"
+
+[[operations]]
+kind = "file"
+when = { distro = ["arch"] }
+src = "files/status.py"
+dst = "~/.config/moi-desktop/status.py"
+
+[[operations]]
+kind = "file"
+when = { distro = ["arch"] }
+src = "files/config/theme.json"
+dst = "~/.config/moi-desktop/config/theme.json"
+
+[[operations]]
+kind = "file"
+when = { distro = ["arch"] }
+src = "files/config/settings.json"
+dst = "~/.config/moi-desktop/config/settings.json"
+
+[[operations]]
+kind = "file"
+when = { distro = ["arch"] }
+src = "files/config/waybar.json"
+dst = "~/.config/moi-desktop/config/waybar.json"
+
+[[operations]]
+kind = "file"
+when = { distro = ["arch"] }
+src = "files/config/hypridle.conf"
+dst = "~/.config/moi-desktop/config/hypridle.conf"
+
+[[operations]]
+kind = "file"
+when = { distro = ["arch"] }
+src = "files/config/fcitx-profile"
+dst = "~/.config/moi-desktop/config/fcitx-profile"
+
+[[operations]]
+kind = "file"
+when = { distro = ["arch"] }
+src = "files/theme/templates/shell.css"
+dst = "~/.config/moi-desktop/theme/templates/shell.css"
+
+[[operations]]
+kind = "file"
+when = { distro = ["arch"] }
+src = "files/theme/templates/waybar.css"
+dst = "~/.config/moi-desktop/theme/templates/waybar.css"
+
+[[operations]]
+kind = "file"
+when = { distro = ["arch"] }
+src = "files/theme/templates/kitty.conf"
+dst = "~/.config/moi-desktop/theme/templates/kitty.conf"
+
+[[operations]]
+kind = "file"
+when = { distro = ["arch"] }
+src = "files/theme/templates/hyprlock.conf"
+dst = "~/.config/moi-desktop/theme/templates/hyprlock.conf"
+
+[[operations]]
+kind = "file"
+when = { distro = ["arch"] }
+src = "files/theme/templates/theme.lua"
+dst = "~/.config/moi-desktop/theme/templates/theme.lua"
+
+[[operations]]
+kind = "file"
+when = { distro = ["arch"] }
+src = "files/theme/templates/gtk.css"
+dst = "~/.config/moi-desktop/theme/templates/gtk.css"
+
+[[operations]]
+kind = "file"
+when = { distro = ["arch"] }
+src = "files/theme/templates/tuigreet.txt"
+dst = "~/.config/moi-desktop/theme/templates/tuigreet.txt"
+
+[[operations]]
+kind = "file"
+when = { distro = ["arch"] }
+src = "files/theme/templates/wallpaper.svg"
+dst = "~/.config/moi-desktop/theme/templates/wallpaper.svg"
+
+[[operations]]
+kind = "file"
+when = { distro = ["arch"] }
+src = "files/assets/material/LICENSE"
+dst = "~/.config/moi-desktop/assets/material/LICENSE"
+
+[[operations]]
+kind = "file"
+when = { distro = ["arch"] }
+src = "files/assets/material/UPSTREAM.md"
+dst = "~/.config/moi-desktop/assets/material/UPSTREAM.md"
+
+[[operations]]
+kind = "file"
+when = { distro = ["arch"] }
+src = "files/assets/material/access_time.svg"
+dst = "~/.config/moi-desktop/assets/material/access_time.svg"
+
+[[operations]]
+kind = "file"
+when = { distro = ["arch"] }
+src = "files/assets/material/battery_alert.svg"
+dst = "~/.config/moi-desktop/assets/material/battery_alert.svg"
+
+[[operations]]
+kind = "file"
+when = { distro = ["arch"] }
+src = "files/assets/material/battery_charging_full.svg"
+dst = "~/.config/moi-desktop/assets/material/battery_charging_full.svg"
+
+[[operations]]
+kind = "file"
+when = { distro = ["arch"] }
+src = "files/assets/material/battery_full.svg"
+dst = "~/.config/moi-desktop/assets/material/battery_full.svg"
+
+[[operations]]
+kind = "file"
+when = { distro = ["arch"] }
+src = "files/assets/material/bluetooth.svg"
+dst = "~/.config/moi-desktop/assets/material/bluetooth.svg"
+
+[[operations]]
+kind = "file"
+when = { distro = ["arch"] }
+src = "files/assets/material/bluetooth_disabled.svg"
+dst = "~/.config/moi-desktop/assets/material/bluetooth_disabled.svg"
+
+[[operations]]
+kind = "file"
+when = { distro = ["arch"] }
+src = "files/assets/material/close.svg"
+dst = "~/.config/moi-desktop/assets/material/close.svg"
+
+[[operations]]
+kind = "file"
+when = { distro = ["arch"] }
+src = "files/assets/material/content_paste.svg"
+dst = "~/.config/moi-desktop/assets/material/content_paste.svg"
+
+[[operations]]
+kind = "file"
+when = { distro = ["arch"] }
+src = "files/assets/material/dark_mode.svg"
+dst = "~/.config/moi-desktop/assets/material/dark_mode.svg"
+
+[[operations]]
+kind = "file"
+when = { distro = ["arch"] }
+src = "files/assets/material/dashboard.svg"
+dst = "~/.config/moi-desktop/assets/material/dashboard.svg"
+
+[[operations]]
+kind = "file"
+when = { distro = ["arch"] }
+src = "files/assets/material/lan.svg"
+dst = "~/.config/moi-desktop/assets/material/lan.svg"
+
+[[operations]]
+kind = "file"
+when = { distro = ["arch"] }
+src = "files/assets/material/language.svg"
+dst = "~/.config/moi-desktop/assets/material/language.svg"
+
+[[operations]]
+kind = "file"
+when = { distro = ["arch"] }
+src = "files/assets/material/light_mode.svg"
+dst = "~/.config/moi-desktop/assets/material/light_mode.svg"
+
+[[operations]]
+kind = "file"
+when = { distro = ["arch"] }
+src = "files/assets/material/lock.svg"
+dst = "~/.config/moi-desktop/assets/material/lock.svg"
+
+[[operations]]
+kind = "file"
+when = { distro = ["arch"] }
+src = "files/assets/material/notifications.svg"
+dst = "~/.config/moi-desktop/assets/material/notifications.svg"
+
+[[operations]]
+kind = "file"
+when = { distro = ["arch"] }
+src = "files/assets/material/power_settings_new.svg"
+dst = "~/.config/moi-desktop/assets/material/power_settings_new.svg"
+
+[[operations]]
+kind = "file"
+when = { distro = ["arch"] }
+src = "files/assets/material/restart_alt.svg"
+dst = "~/.config/moi-desktop/assets/material/restart_alt.svg"
+
+[[operations]]
+kind = "file"
+when = { distro = ["arch"] }
+src = "files/assets/material/search.svg"
+dst = "~/.config/moi-desktop/assets/material/search.svg"
+
+[[operations]]
+kind = "file"
+when = { distro = ["arch"] }
+src = "files/assets/material/settings.svg"
+dst = "~/.config/moi-desktop/assets/material/settings.svg"
+
+[[operations]]
+kind = "file"
+when = { distro = ["arch"] }
+src = "files/assets/material/terminal.svg"
+dst = "~/.config/moi-desktop/assets/material/terminal.svg"
+
+[[operations]]
+kind = "file"
+when = { distro = ["arch"] }
+src = "files/assets/material/volume_off.svg"
+dst = "~/.config/moi-desktop/assets/material/volume_off.svg"
+
+[[operations]]
+kind = "file"
+when = { distro = ["arch"] }
+src = "files/assets/material/volume_up.svg"
+dst = "~/.config/moi-desktop/assets/material/volume_up.svg"
+
+[[operations]]
+kind = "file"
+when = { distro = ["arch"] }
+src = "files/assets/material/warning.svg"
+dst = "~/.config/moi-desktop/assets/material/warning.svg"
+
+[[operations]]
+kind = "file"
+when = { distro = ["arch"] }
+src = "files/assets/material/wifi.svg"
+dst = "~/.config/moi-desktop/assets/material/wifi.svg"
+
+[[operations]]
+kind = "file"
+when = { distro = ["arch"] }
+src = "files/assets/material/wifi_off.svg"
+dst = "~/.config/moi-desktop/assets/material/wifi_off.svg"
+
+[[operations]]
+kind = "shell"
+when = { distro = ["arch"] }
+run = 'python3 "$HOME/.config/moi-desktop/backend.py" render "$HOME/.config/moi-desktop/generated" "$HOME/.config/fcitx5/profile"'
+
+[[operations]]
+kind = "file"
+when = { distro = ["arch"] }
+src = "files/config/hyprland.lua"
+dst = "~/.config/hypr/hyprland.lua"
+
+[[operations]]
+kind = "file"
+when = { distro = ["arch"] }
+src = "files/config/kitty.conf"
+dst = "~/.config/kitty/kitty.conf"
+
+[[operations]]
+kind = "file"
+when = { distro = ["arch"] }
+src = "files/config/fcitx-config"
+dst = "~/.config/fcitx5/config"
+
+[[operations]]
+kind = "file"
+when = { distro = ["arch"] }
+src = "files/config/mozc.conf"
+dst = "~/.config/fcitx5/conf/mozc.conf"
+
+[[operations]]
+kind = "file"
+when = { distro = ["arch"] }
+src = "files/config/gtk-settings.ini"
+dst = "~/.config/gtk-3.0/settings.ini"
+
+[[operations]]
+kind = "file"
+when = { distro = ["arch"] }
+src = "files/config/gtk-import.css"
+dst = "~/.config/gtk-3.0/gtk.css"
+
+[[operations]]
+kind = "file"
+when = { distro = ["arch"] }
+src = "files/config/gtk-import.css"
+dst = "~/.config/gtk-4.0/gtk.css"
+
+[[operations]]
+kind = "block"
+when = { distro = ["arch"] }
+src = "files/config/zsh-editing.sh"
+dst = "~/.zshrc"
+marker = "moi:desktop:vi"
+
+[[operations]]
+kind = "block"
+when = { distro = ["arch"] }
+src = "files/config/uwsm-env.sh"
+dst = "~/.config/uwsm/env"
+marker = "moi:desktop:input"
+
+[[operations]]
+kind = "file"
+when = { distro = ["arch"] }
+src = "files/config/moi-desktop.service"
+dst = "~/.config/systemd/user/moi-desktop.service"
+
+[[operations]]
+kind = "shell"
+when = { distro = ["arch"] }
+run = '''
+systemctl --user daemon-reload
+systemctl --user try-restart moi-desktop.service
+'''

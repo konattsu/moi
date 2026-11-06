@@ -1,0 +1,29 @@
+{
+  "layer": "top",
+  "position": "top",
+  "height": 34,
+  "margin-left": 10,
+  "margin-right": 10,
+  "exclusive": false,
+  "start_hidden": true,
+  "on-sigusr1": "show",
+  "on-sigusr2": "hide",
+  "modules-left": ["hyprland/workspaces", "hyprland/window"],
+  "modules-center": ["clock"],
+  "modules-right": ["tray", "network", "bluetooth", "pulseaudio", "backlight", "battery", "custom/notifications", "custom/session"],
+  "hyprland/workspaces": {"format": "{id}", "on-click": "activate"},
+  "hyprland/window": {"max-length": 20, "separate-outputs": true},
+  "tray": {"icon-size": 16, "spacing": 8},
+  "clock": {"locale": "C", "format": "{:%H:%M}", "tooltip-format": "{:%a %d %b}\n\n<tt>{calendar}</tt>"},
+  "network": {
+    "format-wifi": "{essid}", "format-ethernet": "{ipaddr}", "format-disconnected": " ", "max-length": 10,
+    "tooltip-format-wifi": "{essid}\n{signalStrength}% · {ipaddr}", "tooltip-format-ethernet": "{ipaddr}",
+    "on-click": "python3 @desktop@ wifi"
+  },
+  "bluetooth": {"format": " ", "format-disabled": " ", "format-connected": "{num_connections}", "tooltip-format-connected": "{device_enumerate}", "on-click": "python3 @desktop@ bluetooth"},
+  "pulseaudio": {"format": "{volume}%", "format-muted": " ", "scroll-step": 5, "tooltip-format": "{desc}\n{volume}%", "on-click": "python3 @desktop@ audio", "on-click-right": "python3 @desktop@ mute"},
+  "backlight": {"format": "{percent}%", "on-click": "python3 @desktop@ brightness"},
+  "battery": {"format": "{capacity}%", "format-charging": "{capacity}%", "states": {"warning": 20, "critical": 10}, "tooltip-format": "{timeTo} · {power} W"},
+  "custom/notifications": {"exec": "python3 @status@", "return-type": "json", "interval": "once", "signal": 3, "format": "{}", "tooltip": false, "on-click": "python3 @desktop@ notifications"},
+  "custom/session": {"format": " ", "tooltip": false, "on-click": "python3 @desktop@ session"}
+}

@@ -1,0 +1,36 @@
+* { font-family: "IBM Plex Sans", "Noto Sans", sans-serif; font-size: 12px; border-radius: 0; box-shadow: none; text-shadow: none; }
+window#waybar { background: {{surface}}; color: {{foreground}}; border: none; border-bottom: 1px solid alpha({{foreground}}, .1); border-radius: 0 0 10px 10px; }
+window#waybar.hidden { background: transparent; border-color: transparent; }
+#workspaces { padding: 0 6px; }
+#workspaces button { background: transparent; color: {{muted}}; min-width: 22px; min-height: 22px; margin: 4px 1px; padding: 0 3px; border: none; border-radius: 6px; }
+#workspaces button.active { color: {{foreground}}; background: {{raised}}; }
+#workspaces button:hover { background: {{raised}}; }
+#workspaces button.urgent { color: {{warning}}; }
+#window { color: {{muted}}; padding: 0 10px; }
+#tray { padding: 0 8px; }
+#clock, #network, #bluetooth, #pulseaudio, #backlight, #battery, #custom-notifications, #custom-session {
+    background-repeat: no-repeat;
+    background-position: 7px center;
+    background-size: 16px 16px;
+    padding: 0 8px 0 28px;
+    margin: 0 2px;
+    min-width: 12px;
+}
+#clock { font-weight: 500; background-image: url("@icons@/access_time.svg"); }
+#network { background-image: url("@icons@/wifi.svg"); }
+#network.ethernet { background-image: url("@icons@/lan.svg"); }
+#network.disconnected { background-image: url("@icons@/wifi_off.svg"); }
+#bluetooth { background-image: url("@icons@/bluetooth.svg"); }
+#bluetooth.disabled, #bluetooth.off { background-image: url("@icons@/bluetooth_disabled.svg"); }
+#pulseaudio { background-image: url("@icons@/volume_up.svg"); }
+#pulseaudio.muted { background-image: url("@icons@/volume_off.svg"); }
+#backlight { background-image: url("@icons@/light_mode.svg"); }
+#battery { background-image: url("@icons@/battery_full.svg"); }
+#battery.charging { background-image: url("@icons@/battery_charging_full.svg"); }
+#battery.warning { color: {{warning}}; }
+#battery.critical { color: {{error}}; background-image: url("@icons@/battery_alert.svg"); }
+#custom-notifications { background-image: url("@icons@/notifications.svg"); font-size: 11px; }
+#custom-notifications.quiet { color: {{muted}}; }
+#custom-session { background-image: url("@icons@/power_settings_new.svg"); padding-right: 4px; }
+tooltip { background: {{surface}}; border: 1px solid {{border}}; border-radius: 10px; }
+tooltip label { color: {{foreground}}; padding: 8px; }

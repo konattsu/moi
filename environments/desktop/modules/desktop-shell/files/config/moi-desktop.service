@@ -1,0 +1,19 @@
+[Unit]
+Description=Moi desktop panel, launcher and notifications
+PartOf=graphical-session.target
+After=graphical-session-pre.target
+
+[Service]
+Type=simple
+Environment=GTK_IM_MODULE=fcitx
+Environment=QT_IM_MODULE=fcitx
+Environment=XMODIFIERS=@im=fcitx
+Environment=PYTHONUNBUFFERED=1
+Environment=LC_MESSAGES=C.UTF-8
+ExecStart=/usr/bin/python3 "%h/.config/moi-desktop/desktop.py" start
+Restart=on-failure
+RestartSec=2
+TimeoutStopSec=5
+
+[Install]
+WantedBy=graphical-session.target

@@ -1,0 +1,17 @@
+@define-color theme_bg_color {{background}};
+@define-color theme_fg_color {{foreground}};
+@define-color theme_base_color {{background}};
+@define-color theme_text_color {{foreground}};
+@define-color theme_selected_bg_color {{accent}};
+@define-color theme_selected_fg_color {{background}};
+@define-color accent_bg_color {{accent}};
+@define-color accent_fg_color {{background}};
+@define-color accent_color {{accent}};
+@define-color warning_color {{warning}};
+@define-color error_color {{error}};
+@define-color success_color {{success}};
+window, dialog, popover, menu { background-color: {{background}}; color: {{foreground}}; }
+button, entry { border-radius: 6px; box-shadow: none; }
+headerbar { box-shadow: none; }
+popover, menu { border-radius: 10px; box-shadow: none; }
+selection { background-color: {{accent}}; color: {{background}}; }
